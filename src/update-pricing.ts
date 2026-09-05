@@ -5,8 +5,7 @@
 // Peak pricing (a subset of models, higher rates 12:00-18:00 UTC Mon-Fri)
 // is stored under x_ollama: `cost` always means the standard rate.
 import { extractPricingTables, fetchPricingHtml, PRICING_URL } from "./sources/pricing-page.ts";
-import { extractJson } from "./extract/ai.ts";
-import { RateCardExtractionSchema } from "./catalog/schema.ts";
+import { extractRates } from "./catalog/extract-rates.ts";
 import { resolveRates } from "./catalog/resolve-rates.ts";
 import { loadPreviousPricing, loadCatalog, publishCatalog, publishPricing, refreshDecision } from "./catalog/assemble.ts";
 
@@ -16,35 +15,10 @@ console.log(
     (peak ? `, ${peak.rowCount} peak rows` : ", no peak table"),
 );
 
-const extraction = await extractJson(
-  RateCardExtractionSchema,
-  [
-    `You extract Ollama's model pricing rate cards from markdown tables.`,
-    `TABLE 1 is the standard rate card with exactly ${standard.rowCount} rate rows; "rates" must contain exactly those ${standard.rowCount} rows in order.`,
-    peak
-      ? `TABLE 2 is the peak-pricing rate card with exactly ${peak.rowCount} rate rows; "peak_rates" must contain exactly those ${peak.rowCount} rows in order.`
-      : `There is no peak-pricing table; "peak_rates" must be an empty array.`,
-    `The "Model" column holds the full model id, including any tag suffix (e.g. 'gpt-oss:120b' — never drop the tag). Prices are US dollars per million tokens; strip the $ sign and report plain numbers. A '-' cell means null (no rate).`,
-  ].join(" "),
-  [TABLE_LABEL("Standard rate card", standard), peak ? TABLE_LABEL("Peak pricing", peak) : ""]
-    .filter(Boolean)
-    .join("\n\n"),
-);
-if (extraction.rates.length !== standard.rowCount)
-  throw new Error(
-    `standard rate extraction incomplete: got ${extraction.rates.length}, table has ${standard.rowCount} rows`,
-  );
-if (extraction.peak_rates.length !== (peak?.rowCount ?? 0))
-  throw new Error(
-    `peak rate extraction incomplete: got ${extraction.peak_rates.length}, table has ${peak?.rowCount ?? 0} rows`,
-  );
+const extraction = await extractRates(standard, peak);
 console.log(
   `extracted ${extraction.rates.length} standard rates, ${extraction.peak_rates.length} peak rates`,
 );
-
-function TABLE_LABEL(label: string, table: { markdown: string }): string {
-  return `## ${label}\n${table.markdown}`;
-}
 
 const catalog = await loadCatalog();
 if (!catalog) throw new Error("catalog.json missing; run update-catalog first");

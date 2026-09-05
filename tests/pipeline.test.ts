@@ -9,6 +9,7 @@ import { resolveRateId, resolveRates } from "../src/catalog/resolve-rates.ts";
 import { decideRebuild } from "../src/catalog/gate.ts";
 import { CatalogDocSchema, ModelSchema, PricingDocSchema, RateCardExtractionSchema, type CatalogDoc } from "../src/catalog/schema.ts";
 import { buildCatalogDoc, buildPricingDoc, applyCosts, refreshDecision } from "../src/catalog/assemble.ts";
+import { buildRatePrompt, extractRates } from "../src/catalog/extract-rates.ts";
 import { SHOW_GLM53, PROBE_GLM53_ERROR, PRICING_SECTION, PRICING_SECTION_PEAK } from "./fixtures.ts";
 
 // Route a fake fetch by URL substring, restoring the global afterwards.
@@ -82,6 +83,15 @@ describe("peak pricing extraction", () => {
     expect(peak?.markdown).toContain("deepseek-v4-flash");
     expect(peak?.markdown).not.toContain("gemma4");
     expect(peakWindow).toContain("12:00 and 18:00");
+  });
+
+  test("peak table without its window paragraph fails loud", () => {
+    const html = `<section id="model-pricing">
+      <table><tr><th>Model</th><th>Input</th></tr><tr><td><a href="/library/glm-5.3">glm-5.3</a></td><td>$1</td></tr></table>
+      <h3>Peak pricing</h3>
+      <table><tr><th>Model</th><th>Input</th></tr><tr><td><a href="/library/glm-5.3">glm-5.3</a></td><td>$2</td></tr></table>
+    </section>`;
+    expect(() => extractPricingTables(html)).toThrow("window paragraph is missing");
   });
 });
 
@@ -450,6 +460,49 @@ describe("artifact assembly", () => {
     // An empty peak map leaves the standard cost untouched.
     const costOnly = applyCosts(doc, costs, new Map());
     expect(costOnly.provider.models["glm-5.3-flash"]?.cost).toEqual(costs.get("glm-5.3-flash"));
+  });
+});
+
+describe("rate card extraction", () => {
+  const withPeak = extractPricingTables(PRICING_SECTION_PEAK);
+  const withoutPeak = extractPricingTables(PRICING_SECTION);
+  const rate = (model: string) => ({ model, input: 1.4, cached_input: 0.26, output: 4.4 });
+  const call = async () => ({
+    rates: withPeak.standard.rowCount ? [1, 2, 3, 4, 5].map((n) => rate(`m-${n}`)) : [],
+    peak_rates: withPeak.peak ? [1, 2].map((n) => rate(`p-${n}`)) : [],
+  });
+
+  test("golden prompt snapshot", () => {
+    expect(buildRatePrompt(withPeak.standard, withPeak.peak)).toMatchSnapshot();
+  });
+
+  test("no peak table anchors peak_rates as an empty array", () => {
+    const prompt = buildRatePrompt(withoutPeak.standard, undefined);
+    expect(prompt.instructions).toContain('"peak_rates" must be an empty array');
+    expect(prompt.user).not.toContain("Peak pricing");
+  });
+
+  test("an incomplete LLM response aborts", async () => {
+    const short = async () => ({ rates: [rate("glm-5.3")], peak_rates: [] });
+    await expect(extractRates(withPeak.standard, withPeak.peak, short as never)).rejects.toThrow(
+      "standard rate extraction incomplete",
+    );
+  });
+
+  test("an incomplete peak table aborts", async () => {
+    const shortPeak = async () => ({
+      rates: [1, 2, 3, 4, 5].map((n) => rate(`m-${n}`)),
+      peak_rates: [rate("p-1")],
+    });
+    await expect(extractRates(withPeak.standard, withPeak.peak, shortPeak as never)).rejects.toThrow(
+      "peak rate extraction incomplete",
+    );
+  });
+
+  test("a complete response passes through", async () => {
+    const extraction = await extractRates(withPeak.standard, withPeak.peak, call as never);
+    expect(extraction.rates).toHaveLength(withPeak.standard.rowCount);
+    expect(extraction.peak_rates).toHaveLength(withPeak.peak?.rowCount ?? 0);
   });
 });
 

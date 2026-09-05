@@ -4,7 +4,6 @@
 // the completeness check, and the peak window text is read deterministically
 // — the LLM only interprets cells into JSON.
 import * as cheerio from "cheerio";
-type Cheerio$ = ReturnType<typeof cheerio.load>;
 import { fetchText } from "../lib/http.ts";
 
 export const PRICING_URL = "https://ollama.com/pricing";
@@ -35,31 +34,6 @@ export function extractPricingSection(html: string): string {
 }
 
 export type PricingTable = { markdown: string; rowCount: number };
-
-const tableToMarkdown = ($: ReturnType<typeof cheerio.load>, table: cheerio.Cheerio<never>): PricingTable => {
-  const rows = table
-    .find("tr")
-    .map((_, tr) =>
-      $(tr)
-        .find("th,td")
-        .map((__, cell) => $(cell).text().replace(/\s+/g, " ").trim())
-        .get()
-        .join(" | "),
-    )
-    .get()
-    .filter((line) => line.length > 0);
-  if (rows.length < 2)
-    throw new Error("pricing table has no header + data rows");
-  const [header, ...data] = rows;
-  return {
-    markdown: [
-      `| ${header} |`,
-      `|${new Array(header!.split("|").length).fill(" --- ").join("")}|`,
-      ...data.map((r) => `| ${r} |`),
-    ].join("\n"),
-    rowCount: data.length,
-  };
-};
 
 // The section holds up to two tables: the standard (off-peak) rate card
 // first, then — since 2026-09 — a "Peak pricing" table (2x rates, 12:00-18:00
@@ -112,8 +86,13 @@ export function extractPricingTables(html: string): {
       direct.length > 0 ? direct : $(peakHeading).nextAll().find("table").first();
     if (peakTable.length === 0)
       throw new Error("peak pricing heading found but no table after it");
+    // A peak rate card without its window text would diverge silently from
+    // the catalog (peak_cost without x_ollama in pricing.json); refuse.
+    const windowText = $(peakHeading).nextAll("p").first().text().replace(/\s+/g, " ").trim();
+    if (!windowText)
+      throw new Error("peak pricing table found but its window paragraph is missing");
+    peakWindow = windowText;
     peak = tableToMarkdown(peakTable);
-    peakWindow = $(peakHeading).nextAll("p").first().text().replace(/\s+/g, " ").trim() || undefined;
   }
   return { standard, peak, peakWindow };
 }

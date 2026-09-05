@@ -26,8 +26,6 @@ jobs:
           bun-version: 1.4.0
 
       - name: Update catalog (skips scraping if model list unchanged)
-        # OLLAMA_API_KEY backs the output-limit probe (/api/chat rejects an
-        # oversized num_predict with the model's real cap before generating).
         env:
           OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
         run: bun src/update-catalog.ts update

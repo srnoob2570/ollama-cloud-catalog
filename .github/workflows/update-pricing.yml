@@ -1,10 +1,10 @@
 name: update-pricing
 
-# Weekly cron plus manual dispatch. The rate card changes through a human
-# decision on Ollama's side, so weekly is a refresh, not a guarantee.
 on:
-  schedule:
-    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+  # scheduled from the self-hosted runner's crontab via workflow_dispatch API
+  # (GitHub's `schedule` trigger silently drops runs under load)
+  # schedule:
+  #   - cron: "0 6 * * 1" # Mondays 06:00 UTC
   workflow_dispatch:
 
 permissions:
@@ -26,8 +26,6 @@ jobs:
           bun-version: 1.4.0
 
       - name: Refresh pricing from the live rate card
-        # Extraction runs on ollama-cloud glm-5.3-flash with structured
-        # outputs; any coverage problem aborts before writing.
         env:
           OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
         run: |

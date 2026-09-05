@@ -3,6 +3,7 @@
 // survives catalog rebuilds (pricing is a separate flow) and pricing updates
 // never touch specs — the two flows only share the cost fields.
 import { CatalogDocSchema, PricingDocSchema, type CatalogDoc, type Cost, type Model, type PricingDoc } from "./schema.ts";
+import { seedReasoningOptions } from "../sources/models-dev.ts";
 import { stableStringify, writeAtomic } from "../lib/artifacts.ts";
 
 export const CATALOG_PATH = "catalog.json";
@@ -16,6 +17,8 @@ export type CatalogSources = {
   specs: Model[]; // one per listed id, in any order
   costs: Map<string, Cost>; // from previous artifacts, keyed by model id
   peakCosts?: Map<string, Cost>; // models the rate card peak-prices
+  reasoningSeed?: Map<string, string[]>; // models.dev effort tiers, build-time only
+  reasoningPrior?: Map<string, string[]>; // previous artifact's reasoning_options
 };
 
 export function buildCatalogDoc(sources: CatalogSources): CatalogDoc {
@@ -23,6 +26,12 @@ export function buildCatalogDoc(sources: CatalogSources): CatalogDoc {
     sources.specs.map((spec) => {
       const cost = sources.costs.get(spec.id);
       const peakCost = sources.peakCosts?.get(spec.id);
+      // Effort tiers come from the models.dev seed (build-time only),
+      // falling back to the previous artifact; absent everywhere → the
+      // field is omitted, never guessed.
+      const reasoningOptions =
+        (sources.reasoningSeed ? seedReasoningOptions(sources.reasoningSeed, spec.id) : undefined) ??
+        sources.reasoningPrior?.get(spec.id);
       return [
         spec.id,
         {
@@ -31,6 +40,7 @@ export function buildCatalogDoc(sources: CatalogSources): CatalogDoc {
           x_ollama: {
             ...spec.x_ollama,
             ...(peakCost ? { peak_cost: peakCost } : {}),
+            ...(reasoningOptions ? { reasoning_options: reasoningOptions } : {}),
           },
         },
       ];
@@ -194,4 +204,11 @@ export function previousPeakCosts(catalog: CatalogDoc | undefined): Map<string, 
   for (const [id, model] of Object.entries(catalog?.provider.models ?? {}))
     if (model.x_ollama.peak_cost) costs.set(id, model.x_ollama.peak_cost);
   return costs;
+}
+
+export function previousReasoningOptions(catalog: CatalogDoc | undefined): Map<string, string[]> {
+  const options = new Map<string, string[]>();
+  for (const [id, model] of Object.entries(catalog?.provider.models ?? {}))
+    if (model.x_ollama.reasoning_options) options.set(id, model.x_ollama.reasoning_options);
+  return options;
 }

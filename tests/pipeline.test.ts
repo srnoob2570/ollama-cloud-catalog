@@ -2,12 +2,31 @@ import { describe, expect, test } from "bun:test";
 import { extractPricingSection, extractPricingTables } from "../src/sources/pricing-page.ts";
 import { reasoningOptionsOf, seedReasoningOptions } from "../src/sources/models-dev.ts";
 import { fetchModelSpec } from "../src/sources/show.ts";
+import { fetchModelsList } from "../src/sources/models-api.ts";
 import { modelsHash, stableStringify } from "../src/lib/artifacts.ts";
 import { displayName } from "../src/lib/ids.ts";
 import { resolveRateId, resolveRates } from "../src/catalog/resolve-rates.ts";
-import { CatalogDocSchema, ModelSchema, PricingDocSchema, RateCardExtractionSchema } from "../src/catalog/schema.ts";
+import { decideRebuild } from "../src/catalog/gate.ts";
+import { CatalogDocSchema, ModelSchema, PricingDocSchema, RateCardExtractionSchema, type CatalogDoc } from "../src/catalog/schema.ts";
 import { buildCatalogDoc, buildPricingDoc, applyCosts, refreshDecision } from "../src/catalog/assemble.ts";
 import { SHOW_GLM53, PROBE_GLM53_ERROR, PRICING_SECTION, PRICING_SECTION_PEAK } from "./fixtures.ts";
+
+// Route a fake fetch by URL substring, restoring the global afterwards.
+// Committed-3 replaces this with an injected fetch impl; until then this is
+// the only seam the sources expose.
+const mockFetch = (routes: Record<string, unknown | (() => Response)>) => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    for (const [pattern, body] of Object.entries(routes))
+      if (url.includes(pattern)) {
+        const response = typeof body === "function" ? (body as () => Response)() : new Response(JSON.stringify(body), { status: 200 });
+        return response;
+      }
+    throw new Error(`unexpected fetch in test: ${url}`);
+  }) as typeof fetch;
+  return () => (globalThis.fetch = originalFetch);
+};
 
 describe("ids", () => {
   test("titleCase with acronyms and tags", () => {
@@ -145,20 +164,7 @@ describe("coverage", () => {
 
 describe("/api/show mapping", () => {
   // fetchModelSpec hits two endpoints: /api/show (spec) and /api/chat
-  // (output-limit probe). Route the mock by URL.
-  const mockFetch = (routes: Record<string, unknown | (() => Response)>) => {
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = (async (input: RequestInfo | URL) => {
-      const url = String(input);
-      for (const [pattern, body] of Object.entries(routes))
-        if (url.includes(pattern)) {
-          const response = typeof body === "function" ? (body as () => Response)() : new Response(JSON.stringify(body), { status: 200 });
-          return response;
-        }
-      throw new Error(`unexpected fetch in test: ${url}`);
-    }) as typeof fetch;
-    return () => (globalThis.fetch = originalFetch);
-  };
+  // (output-limit probe). Route the mock by URL via the file-level mockFetch.
 
   test("maps capabilities, limits and x-ollama metadata", async () => {
     const restore = mockFetch({
@@ -215,6 +221,125 @@ describe("/api/show mapping", () => {
     } finally {
       restore();
     }
+  });
+});
+
+describe("rebuild gate", () => {
+  const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+  const t0 = Date.parse("2026-09-01T00:00:00.000Z");
+  const prev = (modelsHash: string, generatedAt: string) => ({
+    x_ollama: { models_hash: modelsHash, generated_at: generatedAt },
+  });
+
+  test("first run rebuilds without a previous artifact", () => {
+    expect(decideRebuild(undefined, "h", t0, false)).toEqual({
+      action: "rebuild",
+      reason: "no-previous",
+    });
+  });
+
+  test("--force overrides an up-to-date artifact", () => {
+    expect(decideRebuild(prev("h", new Date(t0).toISOString()), "h", t0, true)).toEqual({
+      action: "rebuild",
+      reason: "force",
+    });
+  });
+
+  test("hash change triggers a rebuild", () => {
+    expect(decideRebuild(prev("old", new Date(t0).toISOString()), "new", t0, false)).toEqual({
+      action: "rebuild",
+      reason: "hash-changed",
+    });
+  });
+
+  test("stale artifact with unchanged hash rebuilds (bug class: refresh window)", () => {
+    expect(decideRebuild(prev("h", new Date(t0 - WEEK_MS - 1).toISOString()), "h", t0, false)).toEqual({
+      action: "rebuild",
+      reason: "stale",
+    });
+  });
+
+  test("stale artifact with a changed hash reports hash-changed, rebuilding either way", () => {
+    expect(decideRebuild(prev("old", new Date(t0 - WEEK_MS - 1).toISOString()), "new", t0, false)).toEqual({
+      action: "rebuild",
+      reason: "hash-changed",
+    });
+  });
+
+  test("boundary: exactly seven days old is still fresh", () => {
+    expect(decideRebuild(prev("h", new Date(t0 - WEEK_MS).toISOString()), "h", t0, false)).toEqual({
+      action: "skip",
+    });
+  });
+
+  test("fresh artifact with unchanged hash skips", () => {
+    expect(decideRebuild(prev("h", new Date(t0 - 1).toISOString()), "h", t0, false)).toEqual({
+      action: "skip",
+    });
+  });
+});
+
+describe("models list validation", () => {
+  test("duplicate ids fail loud", async () => {
+    const restore = mockFetch({
+      "/models": { data: [{ id: "glm-5.3", created: 1 }, { id: "glm-5.3", created: 2 }] },
+    });
+    try {
+      await expect(fetchModelsList("https://ollama.com/v1")).rejects.toThrow("duplicate ids");
+    } finally {
+      restore();
+    }
+  });
+});
+
+describe("reasoning seed fold", () => {
+  const spec = ModelSchema.parse({
+    id: "glm-5.3",
+    name: "Glm 5.3",
+    attachment: false,
+    reasoning: true,
+    tool_call: true,
+    limit: { context: 202000 },
+    release_date: "2026-08-27",
+    x_ollama: { quantization: "FP8", ollama_family: "glm", parameter_count: 358000000000 },
+  });
+  const build = (seed?: Map<string, string[]>, prior?: Map<string, string[]>) =>
+    buildCatalogDoc({
+      modelsHash: "a".repeat(64),
+      specs: [spec],
+      costs: new Map(),
+      ...(seed ? { reasoningSeed: seed } : {}),
+      ...(prior ? { reasoningPrior: prior } : {}),
+    });
+  const options = (doc: CatalogDoc) => doc.provider.models["glm-5.3"]?.x_ollama.reasoning_options;
+
+  test("seed wins over prior", () => {
+    expect(options(build(new Map([["glm-5.3", ["high"]]]), new Map([["glm-5.3", ["low"]]])))).toEqual(["high"]);
+  });
+
+  test("no seed → previous artifact's options", () => {
+    expect(options(build(undefined, new Map([["glm-5.3", ["low"]]])))).toEqual(["low"]);
+  });
+
+  test("seed miss on exact id falls back to the family, then to prior", () => {
+    // models.dev indexes some models without their tag: 'glm-5.3' seeds the
+    // tagged spec 'glm-5.3:fp8' through the family lookup.
+    const tagged = ModelSchema.parse({
+      ...spec,
+      id: "glm-5.3:fp8",
+    });
+    const doc = buildCatalogDoc({
+      modelsHash: "a".repeat(64),
+      specs: [tagged],
+      costs: new Map(),
+      reasoningSeed: new Map([["glm-5.3", ["high"]]]),
+    });
+    expect(doc.provider.models["glm-5.3:fp8"]?.x_ollama.reasoning_options).toEqual(["high"]);
+    expect(options(build(new Map([["who", ["high"]]]), new Map([["glm-5.3", ["low"]]])))).toEqual(["low"]);
+  });
+
+  test("neither seed nor prior → field omitted, never an empty array", () => {
+    expect(options(build())).toBeUndefined();
   });
 });
 

@@ -4,11 +4,10 @@
 //            past a week, or --force), preserving cost from the old artifact
 import { fetchModelsList } from "./sources/models-api.ts";
 import { fetchAllSpecs } from "./sources/show.ts";
-import { fetchReasoningSeed, seedReasoningOptions } from "./sources/models-dev.ts";
-import { buildCatalogDoc, CATALOG_PATH, loadCatalog, previousCosts, previousPeakCosts, previousSpecs, publishCatalog } from "./catalog/assemble.ts";
+import { fetchReasoningSeed } from "./sources/models-dev.ts";
+import { buildCatalogDoc, CATALOG_PATH, loadCatalog, previousCosts, previousPeakCosts, previousReasoningOptions, previousSpecs, publishCatalog } from "./catalog/assemble.ts";
+import { decideRebuild } from "./catalog/gate.ts";
 import { modelsHash } from "./lib/artifacts.ts";
-
-const STALE_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
 
 const force = process.argv.includes("--force");
 const mode = process.argv[2];
@@ -30,42 +29,31 @@ if (mode === "check") {
   process.exit(previous?.x_ollama.models_hash === liveHash ? 0 : 1);
 }
 
-const stale =
-  !previous ||
-  Date.now() - new Date(previous.x_ollama.generated_at).getTime() > STALE_AFTER_MS;
-if (!previous)
-  console.log("no previous catalog; building from scratch");
-else if (previous.x_ollama.models_hash === liveHash && !force && !stale) {
+const decision = decideRebuild(previous, liveHash, Date.now(), force);
+if (decision.action === "skip") {
   console.log("model list unchanged and artifact fresh; nothing to do");
   process.exit(0);
-} else
-  console.log(
-    force ? "--force: rebuilding specs" : previous.x_ollama.models_hash === liveHash ? `artifact stale past refresh window; refreshing` : "model list changed; rebuilding",
-  );
-
-const listedIds = live.map((m) => m.id);
-if (listedIds.length !== new Set(listedIds).size)
-  throw new Error("/v1/models returned duplicate ids");
-if (listedIds.length === 0) throw new Error("/v1/models returned no models");
+}
+console.log(
+  decision.reason === "force"
+    ? "--force: rebuilding specs"
+    : decision.reason === "stale"
+      ? "artifact stale past refresh window; refreshing"
+      : decision.reason === "no-previous"
+        ? "no previous catalog; building from scratch"
+        : "model list changed; rebuilding",
+);
 
 const reasoningSeed = await fetchReasoningSeed();
 
-const prior = previousSpecs(previous);
-const specs = (await fetchAllSpecs(listedIds, prior)).map((spec) => {
-  // Effort tiers come from the models.dev seed (build-time only), falling
-  // back to the previous artifact; absent everywhere → the field is omitted.
-  const reasoningOptions =
-    (reasoningSeed ? seedReasoningOptions(reasoningSeed, spec.id) : undefined) ??
-    prior.get(spec.id)?.x_ollama.reasoning_options;
-  return reasoningOptions
-    ? { ...spec, x_ollama: { ...spec.x_ollama, reasoning_options: reasoningOptions } }
-    : spec;
-});
+const specs = await fetchAllSpecs(live.map((m) => m.id), previousSpecs(previous));
 const doc = buildCatalogDoc({
   modelsHash: liveHash,
   specs,
   costs: previousCosts(previous),
   peakCosts: previousPeakCosts(previous),
+  ...(reasoningSeed ? { reasoningSeed } : {}),
+  reasoningPrior: previousReasoningOptions(previous),
 });
 await publishCatalog(doc);
 

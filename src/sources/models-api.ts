@@ -17,5 +17,8 @@ export async function fetchModelsList(baseUrl: string): Promise<ListedModel[]> {
   for (const m of models)
     if (typeof m?.id !== "string" || typeof m?.created !== "number")
       throw new Error(`${baseUrl}/models: entry without id/created`);
+  const ids = models.map((m) => m.id);
+  if (ids.length !== new Set(ids).size)
+    throw new Error(`${baseUrl}/models: duplicate ids`);
   return models;
 }

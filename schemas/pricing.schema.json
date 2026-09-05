@@ -1,0 +1,103 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "provider": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+    },
+    "source": {
+      "type": "string"
+    },
+    "models": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "input": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "output": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "cache_read": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "cache_write": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "required": [
+          "input",
+          "output"
+        ]
+      }
+    },
+    "x_ollama": {
+      "type": "object",
+      "properties": {
+        "peak_window": {
+          "type": "string",
+          "minLength": 1
+        },
+        "models": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "input": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "output": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "cache_read": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "cache_write": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "input",
+              "output"
+            ]
+          }
+        }
+      },
+      "required": [
+        "peak_window",
+        "models"
+      ]
+    }
+  },
+  "required": [
+    "$schema",
+    "provider",
+    "generated_at",
+    "source",
+    "models"
+  ]
+}

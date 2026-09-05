@@ -1,0 +1,318 @@
+import { describe, expect, test } from "bun:test";
+import { extractPricingSection, extractPricingTables } from "../src/sources/pricing-page.ts";
+import { reasoningOptionsOf, seedReasoningOptions } from "../src/sources/models-dev.ts";
+import { fetchModelSpec } from "../src/sources/show.ts";
+import { modelsHash, stableStringify } from "../src/lib/artifacts.ts";
+import { displayName } from "../src/lib/ids.ts";
+import { resolveRateId, resolveRates } from "../src/catalog/resolve-rates.ts";
+import { CatalogDocSchema, ModelSchema, PricingDocSchema, RateCardExtractionSchema } from "../src/catalog/schema.ts";
+import { buildCatalogDoc, buildPricingDoc, applyCosts } from "../src/catalog/assemble.ts";
+import { SHOW_GLM53, PROBE_GLM53_ERROR, PRICING_SECTION, PRICING_SECTION_PEAK } from "./fixtures.ts";
+
+describe("ids", () => {
+  test("titleCase with acronyms and tags", () => {
+    expect(displayName("gpt-oss:120b")).toBe("GPT OSS 120B");
+    expect(displayName("glm-5.3-flash")).toBe("GLM 5.3 Flash");
+    expect(displayName("deepseek-v4-pro:0813")).toBe("Deepseek V4 Pro 0813");
+  });
+});
+
+describe("hash gate", () => {
+  test("hash is sensitive to created and id", () => {
+    const a = modelsHash([{ id: "glm-5.3", created: 1 }]);
+    const b = modelsHash([{ id: "glm-5.3", created: 2 }]);
+    const c = modelsHash([{ id: "glm-5.4", created: 1 }]);
+    expect(a).not.toBe(b);
+    expect(a).not.toBe(c);
+    expect(a).toBe(modelsHash([{ id: "glm-5.3", created: 1 }]));
+  });
+
+  test("stableStringify sorts keys for stable diffs", () => {
+    expect(stableStringify({ b: 1, a: 2 })).toBe(stableStringify({ a: 2, b: 1 }));
+  });
+});
+
+describe("pricing page extraction", () => {
+  test("keeps the section, strips attributes", () => {
+    const html = `<html><body><nav>x</nav><section id="model-pricing"><table class="w"><tr><td><a href="/library/glm-5.3" class="link">glm-5.3</a></td><td>$1</td></tr></table></section></body></html>`;
+    const out = extractPricingSection(html);
+    expect(out).toContain("/library/glm-5.3");
+    expect(out).not.toContain("class=");
+    expect(out).not.toContain("<nav>");
+  });
+
+  test("fails loud when the section disappears", () => {
+    expect(() => extractPricingSection("<html><body>nope</body></html>")).toThrow(
+      "no section#model-pricing",
+    );
+  });
+});
+
+describe("peak pricing extraction", () => {
+  test("single-table section has no peak", () => {
+    const { standard, peak, peakWindow } = extractPricingTables(PRICING_SECTION);
+    expect(standard.rowCount).toBe(5);
+    expect(peak).toBeUndefined();
+    expect(peakWindow).toBeUndefined();
+  });
+
+  test("peak table is split out with its window text", () => {
+    const { standard, peak, peakWindow } = extractPricingTables(PRICING_SECTION_PEAK);
+    expect(standard.rowCount).toBe(5);
+    expect(peak?.rowCount).toBe(2);
+    expect(peak?.markdown).toContain("deepseek-v4-flash");
+    expect(peak?.markdown).not.toContain("gemma4");
+    expect(peakWindow).toContain("12:00 and 18:00");
+  });
+});
+
+describe("peak_rate extraction contract", () => {
+  test("peak_rates may be empty when the page has no peak table", () => {
+    const doc = RateCardExtractionSchema.parse({
+      rates: [{ model: "glm-5.3", input: 1.4, cached_input: 0.26, output: 4.4 }],
+      peak_rates: [],
+    });
+    expect(doc.peak_rates).toEqual([]);
+  });
+});
+
+describe("models.dev reasoning seed", () => {
+  const seed = new Map([
+    ["glm-5.3", ["low", "high", "max"]],
+    ["deepseek-v4-flash", ["high", "max"]],
+  ]);
+
+  test("effort entries only; non-effort and non-string values dropped", () => {
+    expect(
+      reasoningOptionsOf({
+        reasoning_options: [
+          { type: "toggle", values: ["x"] },
+          { type: "effort", values: ["high", "max", 42, null] },
+        ],
+      }),
+    ).toEqual(["high", "max"]);
+  });
+
+  test("no effort entries → omitted", () => {
+    expect(reasoningOptionsOf({ reasoning_options: [{ type: "toggle" }] })).toBeUndefined();
+    expect(reasoningOptionsOf({})).toBeUndefined();
+  });
+
+  test("lookup by exact id, then family, then miss", () => {
+    expect(seedReasoningOptions(seed, "glm-5.3")).toEqual(["low", "high", "max"]);
+    expect(seedReasoningOptions(seed, "deepseek-v4-flash:0731")).toEqual(["high", "max"]);
+    expect(seedReasoningOptions(seed, "who-dis")).toBeUndefined();
+  });
+});
+
+describe("resolveRateId", () => {
+  const ids = ["deepseek-v4-flash:0731", "glm-5.3", "glm-5.3-flash"];
+  test("exact id", () => {
+    expect(resolveRateId("glm-5.3", ids)).toBe("glm-5.3");
+  });
+  test("family-unique fallback", () => {
+    expect(resolveRateId("deepseek-v4-flash", ids)).toBe("deepseek-v4-flash:0731");
+  });
+  test("ambiguous family throws", () => {
+    expect(() => resolveRateId("gemma4", ["gemma4:31b", "gemma4:9b"])).toThrow("ambiguous");
+  });
+  test("unknown returns undefined", () => {
+    expect(resolveRateId("mistral-large-3", ids)).toBeUndefined();
+  });
+});
+
+describe("coverage", () => {
+  test("any problem aborts", () => {
+    const model = ModelSchema.parse({
+      id: "glm-5.3",
+      name: "Glm 5.3",
+      attachment: false,
+      reasoning: true,
+      tool_call: true,
+      limit: { context: 202000 },
+      release_date: "2026-08-27",
+      x_ollama: { quantization: "FP8", ollama_family: "glm", parameter_count: 358000000000 },
+    });
+    const models = new Map([[model.id, model]]);
+    const rates = [{ model: "glm-5.3", input: 1.4, cached_input: 0.26, output: 4.4 }];
+    expect(resolveRates(rates, models).problems).toEqual([]);
+    expect(resolveRates([], models).problems).toHaveLength(1);
+    expect(
+      resolveRates([{ model: "who-dis", input: 1, cached_input: 1, output: 1 }], models).problems,
+    ).toHaveLength(2);
+  });
+});
+
+describe("/api/show mapping", () => {
+  // fetchModelSpec hits two endpoints: /api/show (spec) and /api/chat
+  // (output-limit probe). Route the mock by URL.
+  const mockFetch = (routes: Record<string, unknown | (() => Response)>) => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = String(input);
+      for (const [pattern, body] of Object.entries(routes))
+        if (url.includes(pattern)) {
+          const response = typeof body === "function" ? (body as () => Response)() : new Response(JSON.stringify(body), { status: 200 });
+          return response;
+        }
+      throw new Error(`unexpected fetch in test: ${url}`);
+    }) as typeof fetch;
+    return () => (globalThis.fetch = originalFetch);
+  };
+
+  test("maps capabilities, limits and x-ollama metadata", async () => {
+    const restore = mockFetch({
+      "/api/show": SHOW_GLM53,
+      "/api/chat": () =>
+        new Response(JSON.stringify(PROBE_GLM53_ERROR), { status: 400 }),
+    });
+    try {
+      const model = await fetchModelSpec("glm-5.3");
+      expect(model.name).toBe("GLM 5.3");
+      expect(model.reasoning).toBe(true);
+      expect(model.tool_call).toBe(true);
+      expect(model.attachment).toBe(true);
+      expect(model.modalities?.input).toEqual(["text", "image"]);
+      expect(model.limit).toEqual({ context: 202000, output: 1048576 });
+      expect(model.release_date).toBe("2026-08-27");
+      expect(model.x_ollama.quantization).toBe("FP8");
+      expect(model.x_ollama.parameter_count).toBe(358000000000);
+    } finally {
+      restore();
+    }
+  });
+
+  test("404 from /api/show fails loud", async () => {
+    const restore = mockFetch({
+      "/api/show": () => new Response("not found", { status: 404 }),
+    });
+    try {
+      await expect(fetchModelSpec("who-dis")).rejects.toThrow("HTTP 404");
+    } finally {
+      restore();
+    }
+  });
+
+  test("probe without auth fails loud with a clear cause", async () => {
+    const restore = mockFetch({
+      "/api/show": SHOW_GLM53,
+      "/api/chat": () => new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }),
+    });
+    try {
+      await expect(fetchModelSpec("glm-5.3")).rejects.toThrow("OLLAMA_API_KEY");
+    } finally {
+      restore();
+    }
+  });
+
+  test("probe with changed error format fails loud", async () => {
+    const restore = mockFetch({
+      "/api/show": SHOW_GLM53,
+      "/api/chat": () => new Response(JSON.stringify({ error: "something else" }), { status: 400 }),
+    });
+    try {
+      await expect(fetchModelSpec("glm-5.3")).rejects.toThrow("unrecognized error");
+    } finally {
+      restore();
+    }
+  });
+});
+
+describe("artifact assembly", () => {
+  test("full round trip: catalog + pricing docs validate", () => {
+    const specs = [
+      ModelSchema.parse({
+        id: "glm-5.3",
+        name: "Glm 5.3",
+        attachment: false,
+        reasoning: true,
+        tool_call: true,
+        limit: { context: 202000, output: 32768 },
+        release_date: "2026-08-27",
+        x_ollama: { quantization: "FP8", ollama_family: "glm", parameter_count: 358000000000 },
+      }),
+    ];
+    const doc = buildCatalogDoc({
+      modelsHash: modelsHash([{ id: "glm-5.3", created: 1 }]),
+      specs,
+      costs: new Map([["glm-5.3", { input: 1.4, output: 4.4, cache_read: 0.26 }]]),
+    });
+    expect(CatalogDocSchema.parse(doc)).toBeDefined();
+    expect(doc.provider.models["glm-5.3"]?.cost).toEqual({
+      input: 1.4,
+      output: 4.4,
+      cache_read: 0.26,
+    });
+
+    const pricing = buildPricingDoc(
+      new Map([["glm-5.3", { input: 1.4, cache_read: 0.26, output: 4.4 }]]),
+    );
+    expect(pricing.models["glm-5.3"]).toBeDefined();
+
+    const costless = applyCosts(doc, new Map());
+    // applyCosts only refreshes ids present in the map — specs, hash and
+    // unknown ids keep their previous state.
+    expect(costless.provider.models["glm-5.3"]?.cost).toBeDefined();
+    const repriced = applyCosts(
+      doc,
+      new Map([["glm-5.3", { input: 2, output: 6, cache_read: 0.3 }]]),
+    );
+    expect(repriced.provider.models["glm-5.3"]?.cost).toEqual({
+      input: 2,
+      output: 6,
+      cache_read: 0.3,
+    });
+    expect(costless.x_ollama.models_hash).toBe(doc.x_ollama.models_hash);
+  });
+
+  test("peak costs land under x_ollama.peak_cost and in pricing.json", () => {
+    const spec = (id: string) =>
+      ModelSchema.parse({
+        id,
+        name: id,
+        attachment: false,
+        reasoning: true,
+        tool_call: true,
+        limit: { context: 202000 },
+        release_date: "2026-08-27",
+        x_ollama: { quantization: "FP8", ollama_family: "glm" },
+      });
+    const specs = [spec("glm-5.3"), spec("glm-5.3-flash")];
+    const costs = new Map([
+      ["glm-5.3", { input: 1.4, output: 4.4, cache_read: 0.26 }],
+      ["glm-5.3-flash", { input: 0.15, output: 0.5, cache_read: 0.03 }],
+    ]);
+    const peakCosts = new Map([["glm-5.3", { input: 2.8, output: 8.8, cache_read: 0.52 }]]);
+
+    const doc = buildCatalogDoc({ modelsHash: "a".repeat(64), specs, costs, peakCosts });
+    expect(doc.provider.models["glm-5.3"]?.x_ollama.peak_cost).toEqual({
+      input: 2.8,
+      output: 8.8,
+      cache_read: 0.52,
+    });
+    expect(doc.provider.models["glm-5.3-flash"]?.x_ollama.peak_cost).toBeUndefined();
+
+    const pricing = buildPricingDoc(costs, {
+      window: "Peak pricing applies between 12:00 and 18:00 UTC, Monday to Friday.",
+      costById: peakCosts,
+    });
+    expect(PricingDocSchema.parse(pricing)).toBeDefined();
+    expect(pricing.x_ollama?.peak_window).toContain("12:00 and 18:00");
+    expect(pricing.x_ollama?.models["glm-5.3"]).toEqual({
+      input: 2.8,
+      output: 8.8,
+      cache_read: 0.52,
+    });
+    expect(pricing.x_ollama?.models["glm-5.3-flash"]).toBeUndefined();
+
+    // No-peak variant: pricing doc carries no x_ollama at all.
+    const flat = buildPricingDoc(costs);
+    expect(flat.x_ollama).toBeUndefined();
+
+    // Merge-back: peak only touches the models the rate card peak-prices.
+    const repriced = applyCosts(doc, costs, peakCosts);
+    expect(repriced.provider.models["glm-5.3"]?.x_ollama.peak_cost).toBeDefined();
+    expect(repriced.provider.models["glm-5.3-flash"]?.x_ollama.peak_cost).toBeUndefined();
+    expect(repriced.x_ollama.models_hash).toBe(doc.x_ollama.models_hash);
+  });
+});

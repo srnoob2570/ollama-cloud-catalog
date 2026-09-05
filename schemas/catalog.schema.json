@@ -1,0 +1,268 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "provider": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "env": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "npm": {
+          "type": "string"
+        },
+        "doc": {
+          "type": "string"
+        },
+        "models": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "attachment": {
+                "type": "boolean"
+              },
+              "reasoning": {
+                "type": "boolean"
+              },
+              "tool_call": {
+                "type": "boolean"
+              },
+              "temperature": {
+                "type": "boolean"
+              },
+              "cost": {
+                "type": "object",
+                "properties": {
+                  "input": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "output": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "cache_read": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "cache_write": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                },
+                "required": [
+                  "input",
+                  "output"
+                ]
+              },
+              "limit": {
+                "type": "object",
+                "properties": {
+                  "context": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "output": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "context"
+                ]
+              },
+              "modalities": {
+                "type": "object",
+                "properties": {
+                  "input": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "text",
+                        "image",
+                        "audio",
+                        "video",
+                        "pdf"
+                      ]
+                    }
+                  },
+                  "output": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "text",
+                        "image",
+                        "audio",
+                        "video",
+                        "pdf"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "input",
+                  "output"
+                ]
+              },
+              "release_date": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "alpha",
+                  "beta",
+                  "deprecated"
+                ]
+              },
+              "description": {
+                "type": "string"
+              },
+              "x_ollama": {
+                "type": "object",
+                "properties": {
+                  "quantization": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "ollama_family": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "parameter_count": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "peak_cost": {
+                    "type": "object",
+                    "properties": {
+                      "input": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "output": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "cache_read": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "cache_write": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      }
+                    },
+                    "required": [
+                      "input",
+                      "output"
+                    ]
+                  },
+                  "reasoning_options": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "quantization",
+                  "ollama_family"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "attachment",
+              "reasoning",
+              "tool_call",
+              "limit",
+              "release_date",
+              "x_ollama"
+            ]
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "env",
+        "npm",
+        "doc",
+        "models"
+      ]
+    },
+    "x_ollama": {
+      "type": "object",
+      "properties": {
+        "generated_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "models_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "sources": {
+          "type": "object",
+          "properties": {
+            "models": {
+              "type": "string"
+            },
+            "show": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "models",
+            "show"
+          ]
+        }
+      },
+      "required": [
+        "generated_at",
+        "models_hash",
+        "sources"
+      ]
+    }
+  },
+  "required": [
+    "$schema",
+    "provider",
+    "x_ollama"
+  ]
+}

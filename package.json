@@ -1,0 +1,34 @@
+{
+  "name": "@srnoob2570/ollama-cloud-catalog",
+  "version": "0.1.0",
+  "description": "Ollama Cloud model catalog (models.dev-shaped), scraped from ollama.com by GitHub Actions",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/srnoob2570/ollama-cloud-catalog.git"
+  },
+  "keywords": [
+    "ollama",
+    "ollama-cloud",
+    "model-catalog",
+    "models.dev",
+    "pricing"
+  ],
+  "scripts": {
+    "update": "bun src/update-catalog.ts update",
+    "check": "bun src/update-catalog.ts check",
+    "update-pricing": "bun src/update-pricing.ts",
+    "gen-schemas": "bun scripts/gen-schemas.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "cheerio": "^1.1.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.0",
+    "typescript": "5.9.3"
+  }
+}

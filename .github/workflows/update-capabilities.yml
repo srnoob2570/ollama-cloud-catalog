@@ -1,0 +1,53 @@
+name: update-capabilities
+
+# Manual-only by contract: forces a full spec re-extraction (capabilities,
+# limits, quantization, output probes) even when the /v1/models hash is
+# unchanged — for when Ollama quietly upgrades a served model.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-capabilities
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: [self-hosted, dockerless]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.0
+
+      - name: Force spec re-extraction
+        env:
+          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+        run: |
+          bun install --frozen-lockfile
+          bun src/update-catalog.ts update --force
+
+      - name: Test and typecheck
+        run: |
+          bun test
+          bunx tsc --noEmit
+
+      - name: Commit and push if changed
+        run: |
+          if [[ -n "$(git status --porcelain catalog.json pricing.json)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add catalog.json pricing.json
+            git commit -m "chore: force-refresh ollama cloud capabilities"
+            git push
+            for f in catalog.json pricing.json; do
+              curl -sfS "https://purge.jsdelivr.net/gh/srnoob2570/ollama-cloud-catalog@main/$f" \
+                || echo "::warning::jsDelivr purge failed for $f; CDN may serve it stale until its TTL expires"
+            done
+          else
+            echo "Specs unchanged, nothing to commit"
+          fi

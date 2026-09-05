@@ -1,0 +1,57 @@
+name: update-catalog
+
+on:
+  # scheduled from the self-hosted runner's crontab via workflow_dispatch API
+  # (GitHub's `schedule` trigger silently drops runs under load)
+  # schedule:
+  #   - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-catalog
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: [self-hosted, dockerless]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.0
+
+      - name: Update catalog (skips scraping if model list unchanged)
+        # OLLAMA_API_KEY backs the output-limit probe (/api/chat rejects an
+        # oversized num_predict with the model's real cap before generating).
+        env:
+          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+        run: bun src/update-catalog.ts update
+
+      - name: Test and typecheck
+        run: |
+          bun install --frozen-lockfile
+          bun test
+          bunx tsc --noEmit
+
+      - name: Commit and push if changed
+        run: |
+          if [[ -n "$(git status --porcelain catalog.json pricing.json)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add catalog.json pricing.json
+            git commit -m "chore: refresh ollama cloud catalog"
+            git push
+            # Both shipped files: cost fields ride along in catalog.json, so
+            # without the purge users could get mismatched halves.
+            for f in catalog.json pricing.json; do
+              curl -sfS "https://purge.jsdelivr.net/gh/srnoob2570/ollama-cloud-catalog@main/$f" \
+                || echo "::warning::jsDelivr purge failed for $f; CDN may serve it stale until its TTL expires"
+            done
+          else
+            echo "Catalog unchanged, nothing to commit"
+          fi

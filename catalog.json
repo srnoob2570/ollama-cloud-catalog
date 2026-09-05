@@ -1,0 +1,649 @@
+{
+  "$schema": "https://raw.githubusercontent.com/srnoob2570/ollama-cloud-catalog/main/schemas/catalog.schema.json",
+  "provider": {
+    "doc": "https://ollama.com/docs/cloud",
+    "env": [
+      "OLLAMA_API_KEY"
+    ],
+    "id": "ollama-cloud",
+    "models": {
+      "deepseek-v4-flash:0731": {
+        "attachment": false,
+        "cost": {
+          "cache_read": 0.007,
+          "input": 0.22,
+          "output": 0.66
+        },
+        "id": "deepseek-v4-flash:0731",
+        "limit": {
+          "context": 1048576,
+          "output": 65536
+        },
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "Deepseek V4 Flash 0731",
+        "reasoning": true,
+        "release_date": "2026-07-31",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "deepseek4",
+          "parameter_count": 304180418494,
+          "peak_cost": {
+            "cache_read": 0.014,
+            "input": 0.44,
+            "output": 1.32
+          },
+          "quantization": "FP8",
+          "reasoning_options": [
+            "high",
+            "max"
+          ]
+        }
+      },
+      "deepseek-v4-pro:0813": {
+        "attachment": false,
+        "cost": {
+          "cache_read": 0.022,
+          "input": 0.66,
+          "output": 1.98
+        },
+        "id": "deepseek-v4-pro:0813",
+        "limit": {
+          "context": 1048576,
+          "output": 65536
+        },
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "Deepseek V4 Pro 0813",
+        "reasoning": true,
+        "release_date": "2026-08-13",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "deepseek4",
+          "parameter_count": 1650497936906,
+          "peak_cost": {
+            "cache_read": 0.044,
+            "input": 1.32,
+            "output": 3.96
+          },
+          "quantization": "FP8",
+          "reasoning_options": [
+            "high",
+            "max"
+          ]
+        }
+      },
+      "gemma4:31b": {
+        "attachment": true,
+        "cost": {
+          "cache_read": 0.05,
+          "input": 0.14,
+          "output": 0.4
+        },
+        "id": "gemma4:31b",
+        "limit": {
+          "context": 262144,
+          "output": 262144
+        },
+        "modalities": {
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "Gemma4 31B",
+        "reasoning": true,
+        "release_date": "2026-04-02",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "gemma4",
+          "parameter_count": 32682372656,
+          "quantization": "BF16"
+        }
+      },
+      "glm-5.1": {
+        "attachment": false,
+        "cost": {
+          "cache_read": 0.2,
+          "input": 1,
+          "output": 3.2
+        },
+        "id": "glm-5.1",
+        "limit": {
+          "context": 202752,
+          "output": 131072
+        },
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "GLM 5.1",
+        "reasoning": true,
+        "release_date": "2026-04-07",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "glm5.1",
+          "parameter_count": 756162687872,
+          "quantization": "FP8"
+        }
+      },
+      "glm-5.2": {
+        "attachment": false,
+        "cost": {
+          "cache_read": 0.26,
+          "input": 1.4,
+          "output": 4.4
+        },
+        "id": "glm-5.2",
+        "limit": {
+          "context": 1048576,
+          "output": 131072
+        },
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "GLM 5.2",
+        "reasoning": true,
+        "release_date": "2026-06-16",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "glm5.2",
+          "parameter_count": 756162687872,
+          "quantization": "unknown",
+          "reasoning_options": [
+            "high",
+            "max"
+          ]
+        }
+      },
+      "glm-5.3": {
+        "attachment": false,
+        "cost": {
+          "cache_read": 0.26,
+          "input": 1.4,
+          "output": 4.4
+        },
+        "id": "glm-5.3",
+        "limit": {
+          "context": 1048576,
+          "output": 1048576
+        },
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "GLM 5.3",
+        "reasoning": true,
+        "release_date": "2026-08-28",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "glm_dsa_moe",
+          "parameter_count": 753329940480,
+          "quantization": "FP8",
+          "reasoning_options": [
+            "low",
+            "high",
+            "max"
+          ]
+        }
+      },
+      "glm-5.3-flash": {
+        "attachment": true,
+        "cost": {
+          "cache_read": 0.03,
+          "input": 0.15,
+          "output": 0.5
+        },
+        "id": "glm-5.3-flash",
+        "limit": {
+          "context": 1048576,
+          "output": 1048576
+        },
+        "modalities": {
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "GLM 5.3 Flash",
+        "reasoning": true,
+        "release_date": "2026-08-26",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "glm5_next",
+          "parameter_count": 321323031390,
+          "quantization": "FP8",
+          "reasoning_options": [
+            "low",
+            "high",
+            "max"
+          ]
+        }
+      },
+      "gpt-oss:120b": {
+        "attachment": false,
+        "cost": {
+          "cache_read": 0.014,
+          "input": 0.15,
+          "output": 0.6
+        },
+        "id": "gpt-oss:120b",
+        "limit": {
+          "context": 131072,
+          "output": 131072
+        },
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "GPT OSS 120B",
+        "reasoning": true,
+        "release_date": "2025-08-05",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "gptoss",
+          "parameter_count": 116829156672,
+          "quantization": "MXFP4",
+          "reasoning_options": [
+            "low",
+            "medium",
+            "high"
+          ]
+        }
+      },
+      "gpt-oss:20b": {
+        "attachment": false,
+        "cost": {
+          "cache_read": 0.035,
+          "input": 0.07,
+          "output": 0.3
+        },
+        "id": "gpt-oss:20b",
+        "limit": {
+          "context": 131072,
+          "output": 131072
+        },
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "GPT OSS 20B",
+        "reasoning": true,
+        "release_date": "2025-08-05",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "gptoss",
+          "parameter_count": 20914757184,
+          "quantization": "MXFP4",
+          "reasoning_options": [
+            "low",
+            "medium",
+            "high"
+          ]
+        }
+      },
+      "kimi-k2.6": {
+        "attachment": true,
+        "cost": {
+          "cache_read": 0.16,
+          "input": 0.95,
+          "output": 4
+        },
+        "id": "kimi-k2.6",
+        "limit": {
+          "context": 262144,
+          "output": 262144
+        },
+        "modalities": {
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "Kimi K2.6",
+        "reasoning": true,
+        "release_date": "2026-04-20",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "kimi-k2",
+          "parameter_count": 1042000000000,
+          "quantization": "INT4"
+        }
+      },
+      "kimi-k2.7-code": {
+        "attachment": true,
+        "cost": {
+          "cache_read": 0.19,
+          "input": 0.95,
+          "output": 4
+        },
+        "id": "kimi-k2.7-code",
+        "limit": {
+          "context": 262144,
+          "output": 262144
+        },
+        "modalities": {
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "Kimi K2.7 Code",
+        "reasoning": true,
+        "release_date": "2026-06-12",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "kimi-k2",
+          "parameter_count": 1042000000000,
+          "quantization": "INT4"
+        }
+      },
+      "kimi-k3": {
+        "attachment": true,
+        "cost": {
+          "cache_read": 0.3,
+          "input": 3,
+          "output": 15
+        },
+        "id": "kimi-k3",
+        "limit": {
+          "context": 1048576,
+          "output": 1048576
+        },
+        "modalities": {
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "Kimi K3",
+        "reasoning": true,
+        "release_date": "2026-07-27",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "kimi-k3",
+          "parameter_count": 2812000000000,
+          "quantization": "MXFP4",
+          "reasoning_options": [
+            "low",
+            "high",
+            "max"
+          ]
+        }
+      },
+      "minimax-m2.7": {
+        "attachment": false,
+        "cost": {
+          "cache_read": 0.06,
+          "input": 0.3,
+          "output": 1.2
+        },
+        "id": "minimax-m2.7",
+        "limit": {
+          "context": 196608,
+          "output": 131072
+        },
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "Minimax M2.7",
+        "reasoning": true,
+        "release_date": "2026-03-18",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "minimax-m2",
+          "parameter_count": 229000000000,
+          "quantization": "unknown"
+        }
+      },
+      "minimax-m3": {
+        "attachment": true,
+        "cost": {
+          "cache_read": 0.12,
+          "input": 0.6,
+          "output": 2.4
+        },
+        "id": "minimax-m3",
+        "limit": {
+          "context": 512000,
+          "output": 131072
+        },
+        "modalities": {
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "Minimax M3",
+        "reasoning": true,
+        "release_date": "2026-06-01",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "minimax-m3",
+          "quantization": "unknown",
+          "reasoning_options": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
+        }
+      },
+      "mistral-large-3:675b": {
+        "attachment": true,
+        "cost": {
+          "input": 0.5,
+          "output": 1.5
+        },
+        "id": "mistral-large-3:675b",
+        "limit": {
+          "context": 262144,
+          "output": 262144
+        },
+        "modalities": {
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "Mistral Large 3 675B",
+        "reasoning": false,
+        "release_date": "2025-12-02",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "mistral3",
+          "parameter_count": 675000000000,
+          "quantization": "FP8"
+        }
+      },
+      "nemotron-3-nano:30b": {
+        "attachment": false,
+        "cost": {
+          "input": 0.06,
+          "output": 0.24
+        },
+        "id": "nemotron-3-nano:30b",
+        "limit": {
+          "context": 262144,
+          "output": 131072
+        },
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "Nemotron 3 Nano 30B",
+        "reasoning": true,
+        "release_date": "2025-12-15",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "nemotron-3-nano",
+          "parameter_count": 32000000000,
+          "quantization": "FP8"
+        }
+      },
+      "nemotron-3-super": {
+        "attachment": false,
+        "cost": {
+          "cache_read": 0.015,
+          "input": 0.015,
+          "output": 0.6
+        },
+        "id": "nemotron-3-super",
+        "limit": {
+          "context": 262144,
+          "output": 65536
+        },
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "Nemotron 3 Super",
+        "reasoning": true,
+        "release_date": "2026-03-11",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "nemotron_h_moe",
+          "parameter_count": 120000000000,
+          "quantization": "NVFP4"
+        }
+      },
+      "nemotron-3-ultra": {
+        "attachment": false,
+        "cost": {
+          "cache_read": 0.1,
+          "input": 0.1,
+          "output": 3
+        },
+        "id": "nemotron-3-ultra",
+        "limit": {
+          "context": 262144,
+          "output": 65536
+        },
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "Nemotron 3 Ultra",
+        "reasoning": true,
+        "release_date": "2026-06-04",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "unknown",
+          "parameter_count": 550000000000,
+          "quantization": "unknown"
+        }
+      },
+      "qwen3.5:397b": {
+        "attachment": true,
+        "cost": {
+          "input": 0.6,
+          "output": 3.6
+        },
+        "id": "qwen3.5:397b",
+        "limit": {
+          "context": 262144,
+          "output": 65536
+        },
+        "modalities": {
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "Qwen3.5 397B",
+        "reasoning": true,
+        "release_date": "2026-02-16",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "qwen3.5",
+          "parameter_count": 397000000000,
+          "quantization": "BF16"
+        }
+      }
+    },
+    "name": "Ollama Cloud",
+    "npm": "@ai-sdk/openai-compatible"
+  },
+  "x_ollama": {
+    "generated_at": "2026-09-05T11:54:37.396Z",
+    "models_hash": "e06ea128b326f65bf969a63418eba2277f53ca5e4b266ee92d049054d45609a4",
+    "sources": {
+      "models": "https://ollama.com/v1/models",
+      "show": "https://ollama.com/api/show"
+    }
+  }
+}

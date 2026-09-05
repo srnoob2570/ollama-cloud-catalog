@@ -84,27 +84,68 @@ export function buildPricingDoc(
   return PricingDocSchema.parse(doc);
 }
 
+// The pricing refresh decision. Identical rates are not a change: skip the
+// write instead of churning generated_at (the old repo's "asOf changes alone
+// are NOT a diff" rule, applied to the publish decision). The signature
+// covers only the rate-bearing fields; $schema/provider/generated_at/source
+// are volatile and must never trigger a publish. When the rates match the
+// previous pricing but the catalog lags behind (a rebuild between runs can
+// drop cost fields, e.g. restored peak rates), the merge-back is repaired
+// without churning the pricing artifact.
+export type RefreshDecision =
+  | { action: "skip" }
+  | { action: "repair"; catalog: CatalogDoc }
+  | { action: "publish"; catalog: CatalogDoc; pricing: PricingDoc };
+
+export function refreshDecision(
+  previousPricing: PricingDoc | undefined,
+  catalog: CatalogDoc,
+  costById: Map<string, Cost>,
+  peakCostById: Map<string, Cost>,
+  peak?: { window: string },
+): RefreshDecision {
+  const next = buildPricingDoc(
+    costById,
+    peak ? { window: peak.window, costById: peakCostById } : undefined,
+  );
+  const signature = (doc: PricingDoc) =>
+    stableStringify({ models: doc.models, x_ollama: doc.x_ollama ?? null });
+  if (previousPricing && signature(previousPricing) === signature(next)) {
+    const repaired = applyCosts(catalog, costById, peakCostById);
+    if (stableStringify(repaired) !== stableStringify(catalog))
+      return { action: "repair", catalog: repaired };
+    return { action: "skip" };
+  }
+  return {
+    action: "publish",
+    catalog: applyCosts(catalog, costById, peakCostById),
+    pricing: next,
+  };
+}
+
 // Merge-back helper for update-pricing: refresh cost fields in the catalog
 // doc in place (specs, hash and generation stamp untouched). Peak rates ride
-// under the per-model x_ollama extension.
+// under the per-model x_ollama extension. The cost map only refreshes
+// (standard cost is never removed); the peak map is authoritative — a model
+// the rate card no longer peak-prices loses its peak_cost.
 export function applyCosts(
   catalog: CatalogDoc,
   costById: Map<string, Cost>,
-  peakCostById?: Map<string, Cost>,
+  peakCostById: Map<string, Cost>,
 ): CatalogDoc {
   const models = Object.fromEntries(
     Object.entries(catalog.provider.models).map(([id, model]) => {
       const cost = costById.get(id);
-      const peakCost = peakCostById?.get(id);
+      const peakCost = peakCostById.get(id);
+      const x_ollama = { ...model.x_ollama };
+      if (peakCost) x_ollama.peak_cost = peakCost;
+      else delete x_ollama.peak_cost;
       return [
         id,
         {
           ...model,
           ...(cost ? { cost } : {}),
-          x_ollama: {
-            ...model.x_ollama,
-            ...(peakCost ? { peak_cost: peakCost } : {}),
-          },
+          x_ollama,
         },
       ];
     }),
@@ -124,6 +165,14 @@ export async function loadCatalog(): Promise<CatalogDoc | undefined> {
   const file = Bun.file(CATALOG_PATH);
   if (!(await file.exists())) return undefined;
   return CatalogDocSchema.parse(await file.json());
+}
+
+// Mirror of loadCatalog. A pricing.json that no longer parses aborts the run:
+// a corrupt rate card means manual intervention, not silent re-publication.
+export async function loadPreviousPricing(): Promise<PricingDoc | undefined> {
+  const file = Bun.file(PRICING_PATH);
+  if (!(await file.exists())) return undefined;
+  return PricingDocSchema.parse(await file.json());
 }
 
 export function previousSpecs(catalog: CatalogDoc | undefined): Map<string, Model> {

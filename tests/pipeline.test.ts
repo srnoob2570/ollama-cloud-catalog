@@ -6,7 +6,7 @@ import { modelsHash, stableStringify } from "../src/lib/artifacts.ts";
 import { displayName } from "../src/lib/ids.ts";
 import { resolveRateId, resolveRates } from "../src/catalog/resolve-rates.ts";
 import { CatalogDocSchema, ModelSchema, PricingDocSchema, RateCardExtractionSchema } from "../src/catalog/schema.ts";
-import { buildCatalogDoc, buildPricingDoc, applyCosts } from "../src/catalog/assemble.ts";
+import { buildCatalogDoc, buildPricingDoc, applyCosts, refreshDecision } from "../src/catalog/assemble.ts";
 import { SHOW_GLM53, PROBE_GLM53_ERROR, PRICING_SECTION, PRICING_SECTION_PEAK } from "./fixtures.ts";
 
 describe("ids", () => {
@@ -249,13 +249,15 @@ describe("artifact assembly", () => {
     );
     expect(pricing.models["glm-5.3"]).toBeDefined();
 
-    const costless = applyCosts(doc, new Map());
-    // applyCosts only refreshes ids present in the map — specs, hash and
-    // unknown ids keep their previous state.
+    const costless = applyCosts(doc, new Map(), new Map());
+    // applyCosts only refreshes ids present in the cost map — specs, hash and
+    // unknown ids keep their previous state. Standard cost is never removed;
+    // the peak map is authoritative.
     expect(costless.provider.models["glm-5.3"]?.cost).toBeDefined();
     const repriced = applyCosts(
       doc,
       new Map([["glm-5.3", { input: 2, output: 6, cache_read: 0.3 }]]),
+      new Map(),
     );
     expect(repriced.provider.models["glm-5.3"]?.cost).toEqual({
       input: 2,
@@ -314,5 +316,171 @@ describe("artifact assembly", () => {
     expect(repriced.provider.models["glm-5.3"]?.x_ollama.peak_cost).toBeDefined();
     expect(repriced.provider.models["glm-5.3-flash"]?.x_ollama.peak_cost).toBeUndefined();
     expect(repriced.x_ollama.models_hash).toBe(doc.x_ollama.models_hash);
+
+    // The peak map is authoritative: a model missing from it loses its
+    // stale peak_cost (a rate card that stopped peak-pricing it).
+    const unpeaked = applyCosts(doc, costs, new Map());
+    expect(unpeaked.provider.models["glm-5.3"]?.x_ollama.peak_cost).toBeUndefined();
+    expect(unpeaked.provider.models["glm-5.3"]?.cost).toEqual(costs.get("glm-5.3"));
+    // An empty peak map leaves the standard cost untouched.
+    const costOnly = applyCosts(doc, costs, new Map());
+    expect(costOnly.provider.models["glm-5.3-flash"]?.cost).toEqual(costs.get("glm-5.3-flash"));
+  });
+});
+
+describe("pricing refresh decision", () => {
+  const standard = { input: 1.4, output: 4.4, cache_read: 0.26 };
+  const peak = { input: 2.8, output: 8.8, cache_read: 0.52 };
+  const model = ModelSchema.parse({
+    id: "glm-5.3",
+    name: "Glm 5.3",
+    attachment: false,
+    reasoning: true,
+    tool_call: true,
+    limit: { context: 202000 },
+    release_date: "2026-08-27",
+    x_ollama: { quantization: "FP8", ollama_family: "glm", parameter_count: 358000000000 },
+  });
+  const costless = buildCatalogDoc({
+    modelsHash: "a".repeat(64),
+    specs: [model],
+    costs: new Map(),
+  });
+  const upToDate = buildCatalogDoc({
+    modelsHash: "a".repeat(64),
+    specs: [model],
+    costs: new Map([["glm-5.3", standard]]),
+  });
+  const pricingDoc = (models: Record<string, { input: number; output: number; cache_read: number }>, x_ollama?: unknown) =>
+    PricingDocSchema.parse({
+      $schema: "https://example.com/pricing.schema.json",
+      provider: "ollama-cloud",
+      generated_at: "2026-09-01T00:00:00.000Z",
+      source: "https://ollama.com/pricing",
+      models,
+      ...(x_ollama ? { x_ollama } : {}),
+    });
+
+  test("first run publishes both artifacts", () => {
+    const decision = refreshDecision(undefined, costless, new Map([["glm-5.3", standard]]), new Map());
+    expect(decision.action).toBe("publish");
+    if (decision.action === "publish") {
+      expect(decision.pricing.models["glm-5.3"]).toEqual(standard);
+      expect(decision.catalog.provider.models["glm-5.3"]?.cost).toEqual(standard);
+    }
+  });
+
+  test("identical rates skip the write", () => {
+    const previous = pricingDoc({ "glm-5.3": standard });
+    const decision = refreshDecision(previous, upToDate, new Map([["glm-5.3", standard]]), new Map());
+    expect(decision.action).toBe("skip");
+  });
+
+  test("volatile fields alone never trigger a publish", () => {
+    const previous = pricingDoc({ "glm-5.3": standard });
+    previous.generated_at = "2026-09-02T00:00:00.000Z";
+    const decision = refreshDecision(previous, upToDate, new Map([["glm-5.3", standard]]), new Map());
+    expect(decision.action).toBe("skip");
+  });
+
+  test("identical rates repair a lagging catalog", () => {
+    // A rebuild between pricing runs dropped the cost fields; the rates are
+    // unchanged, so the merge-back is repaired without touching pricing.json.
+    const previous = pricingDoc({ "glm-5.3": standard });
+    const decision = refreshDecision(previous, costless, new Map([["glm-5.3", standard]]), new Map());
+    expect(decision.action).toBe("repair");
+    if (decision.action === "repair")
+      expect(decision.catalog.provider.models["glm-5.3"]?.cost).toEqual(standard);
+    expect(decision.action !== "publish");
+  });
+
+  test("repair keeps hash and generation stamp intact", () => {
+    const previous = pricingDoc({ "glm-5.3": standard });
+    const decision = refreshDecision(previous, costless, new Map([["glm-5.3", standard]]), new Map());
+    if (decision.action !== "repair") throw new Error("expected repair");
+    expect(decision.catalog.x_ollama.models_hash).toBe(costless.x_ollama.models_hash);
+    expect(decision.catalog.x_ollama.generated_at).toBe(costless.x_ollama.generated_at);
+  });
+
+  test("identical rates with an up-to-date catalog skip entirely", () => {
+    const previous = pricingDoc({ "glm-5.3": standard });
+    const decision = refreshDecision(
+      previous,
+      upToDate,
+      new Map([["glm-5.3", standard]]),
+      new Map(),
+    );
+    expect(decision.action).toBe("skip");
+  });
+
+  test("a changed standard rate publishes both artifacts", () => {
+    const previous = pricingDoc({ "glm-5.3": standard });
+    const decision = refreshDecision(
+      previous,
+      costless,
+      new Map([["glm-5.3", { input: 2, output: 6, cache_read: 0.3 }]]),
+      new Map(),
+    );
+    expect(decision.action).toBe("publish");
+  });
+
+  test("peak rates: publish adds x_ollama, removal publishes without it", () => {
+    const previous = pricingDoc({ "glm-5.3": standard });
+    const withPeak = refreshDecision(
+      previous,
+      costless,
+      new Map([["glm-5.3", standard]]),
+      new Map([["glm-5.3", peak]]),
+      { window: "12:00-18:00 UTC" },
+    );
+    expect(withPeak.action).toBe("publish");
+    if (withPeak.action === "publish")
+      expect(withPeak.pricing.x_ollama?.models["glm-5.3"]).toEqual(peak);
+
+    const withoutPeak = refreshDecision(
+      pricingDoc({ "glm-5.3": standard }, { peak_window: "12:00-18:00 UTC", models: { "glm-5.3": peak } }),
+      costless,
+      new Map([["glm-5.3", standard]]),
+      new Map(),
+    );
+    expect(withoutPeak.action).toBe("publish");
+    if (withoutPeak.action === "publish") expect(withoutPeak.pricing.x_ollama).toBeUndefined();
+  });
+
+  test("stale peak_cost is cleaned in the repair branch", () => {
+    // The rate card stopped peak-pricing glm-5.3: the authoritative empty
+    // peak map strips the leftover peak_cost even though the rates are
+    // otherwise unchanged.
+    const spec = ModelSchema.parse({
+      ...model,
+      x_ollama: {
+        ...model.x_ollama,
+        peak_cost: peak,
+      },
+    });
+    const catalogWithStalePeak = buildCatalogDoc({
+      modelsHash: "a".repeat(64),
+      specs: [spec],
+      costs: new Map(),
+    });
+    const previous = pricingDoc({ "glm-5.3": standard });
+    const decision = refreshDecision(previous, catalogWithStalePeak, new Map([["glm-5.3", standard]]), new Map());
+    expect(decision.action).toBe("repair");
+    if (decision.action === "repair")
+      expect(decision.catalog.provider.models["glm-5.3"]?.x_ollama.peak_cost).toBeUndefined();
+  });
+
+  test("a new model in the rate card publishes", () => {
+    const previous = pricingDoc({ "glm-5.3": standard });
+    const decision = refreshDecision(
+      previous,
+      costless,
+      new Map([
+        ["glm-5.3", standard],
+        ["glm-5.3-flash", { input: 0.15, output: 0.5, cache_read: 0.03 }],
+      ]),
+      new Map(),
+    );
+    expect(decision.action).toBe("publish");
   });
 });

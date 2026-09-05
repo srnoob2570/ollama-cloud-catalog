@@ -8,9 +8,7 @@ import { extractPricingTables, fetchPricingHtml, PRICING_URL } from "./sources/p
 import { extractJson } from "./extract/ai.ts";
 import { RateCardExtractionSchema } from "./catalog/schema.ts";
 import { resolveRates } from "./catalog/resolve-rates.ts";
-import { applyCosts, buildPricingDoc, loadCatalog, publishCatalog, publishPricing, PRICING_PATH } from "./catalog/assemble.ts";
-import { PricingDocSchema, type PricingDoc } from "./catalog/schema.ts";
-import { stableStringify } from "./lib/artifacts.ts";
+import { loadPreviousPricing, loadCatalog, publishCatalog, publishPricing, refreshDecision } from "./catalog/assemble.ts";
 
 const { standard, peak, peakWindow } = extractPricingTables(await fetchPricingHtml());
 console.log(
@@ -65,47 +63,27 @@ if (problems.length > 0) {
   process.exit(1);
 }
 
-// A refresh with identical rates is not a change: skip the write instead of
-// churning generated_at (the old repo's "asOf changes alone are NOT a diff"
-// rule, applied to the publish decision).
-const previousPricing = await (async () => {
-  const file = Bun.file(PRICING_PATH);
-  if (!(await file.exists())) return undefined;
-  return PricingDocSchema.parse(await file.json());
-})();
-const costSignature = (doc: PricingDoc | undefined) =>
-  doc ? stableStringify({ models: doc.models, x_ollama: doc.x_ollama ?? null }) : "";
-const nextSignature = stableStringify({
-  models: Object.fromEntries([...costById.entries()].sort(([a], [b]) => a.localeCompare(b))),
-  x_ollama:
-    peak && peakWindow
-      ? {
-          peak_window: peakWindow,
-          models: Object.fromEntries(
-            [...peakCostById.entries()].sort(([a], [b]) => a.localeCompare(b)),
-          ),
-        }
-      : null,
-});
-if (previousPricing && costSignature(previousPricing) === nextSignature) {
+// A refresh with identical rates is not a change: refreshDecision skips the
+// write, repairs a lagging catalog, or publishes both artifacts.
+const decision = refreshDecision(
+  await loadPreviousPricing(),
+  catalog,
+  costById,
+  peakCostById,
+  peak && peakWindow ? { window: peakWindow } : undefined,
+);
+if (decision.action === "skip") {
   console.log("rates unchanged since last run; pricing.json not touched");
-  // The catalog may still lag behind (a rebuild between runs can drop
-  // cost fields, e.g. restored peak rates): repair the merge-back without
-  // churning the pricing artifact.
-  const repaired = applyCosts(catalog, costById, peakCostById);
-  if (stableStringify(repaired) !== stableStringify(catalog)) {
-    await publishCatalog(repaired);
-    console.log("catalog.json cost fields refreshed to match the current rates");
-  }
+  process.exit(0);
+}
+if (decision.action === "repair") {
+  await publishCatalog(decision.catalog);
+  console.log("catalog.json cost fields refreshed to match the current rates");
   process.exit(0);
 }
 
-await publishCatalog(applyCosts(catalog, costById, peakCostById));
-await publishPricing(
-  peak && peakWindow
-    ? buildPricingDoc(costById, { window: peakWindow, costById: peakCostById })
-    : buildPricingDoc(costById),
-);
+await publishCatalog(decision.catalog);
+await publishPricing(decision.pricing);
 console.log(
   `published pricing.json and refreshed cost in catalog.json (${costById.size} standard, ${peakCostById.size} peak, source: ${PRICING_URL})`,
 );

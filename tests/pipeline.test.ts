@@ -10,14 +10,14 @@ import { decideRebuild } from "../src/catalog/gate.ts";
 import { CatalogDocSchema, ModelSchema, PricingDocSchema, RateCardExtractionSchema, type CatalogDoc } from "../src/catalog/schema.ts";
 import { buildCatalogDoc, buildPricingDoc, applyCosts, refreshDecision } from "../src/catalog/assemble.ts";
 import { buildRatePrompt, extractRates } from "../src/catalog/extract-rates.ts";
+import { extractJson } from "../src/extract/ai.ts";
 import { SHOW_GLM53, PROBE_GLM53_ERROR, PRICING_SECTION, PRICING_SECTION_PEAK } from "./fixtures.ts";
 
-// Route a fake fetch by URL substring, restoring the global afterwards.
-// Committed-3 replaces this with an injected fetch impl; until then this is
-// the only seam the sources expose.
-const mockFetch = (routes: Record<string, unknown | (() => Response)>) => {
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = (async (input: RequestInfo | URL) => {
+// Route requests by URL substring: a plain value becomes a 200 JSON
+// Response, a function returns its own Response, a miss throws. Injected
+// through the fetchImpl seam (lib/http.ts) — no global mutation.
+const fakeFetch = (routes: Record<string, unknown | (() => Response)>) =>
+  (async (input: RequestInfo | URL) => {
     const url = String(input);
     for (const [pattern, body] of Object.entries(routes))
       if (url.includes(pattern)) {
@@ -26,8 +26,6 @@ const mockFetch = (routes: Record<string, unknown | (() => Response)>) => {
       }
     throw new Error(`unexpected fetch in test: ${url}`);
   }) as typeof fetch;
-  return () => (globalThis.fetch = originalFetch);
-};
 
 describe("ids", () => {
   test("titleCase with acronyms and tags", () => {
@@ -174,64 +172,121 @@ describe("coverage", () => {
 
 describe("/api/show mapping", () => {
   // fetchModelSpec hits two endpoints: /api/show (spec) and /api/chat
-  // (output-limit probe). Route the mock by URL via the file-level mockFetch.
+  // (output-limit probe). Route the injected impl by URL substring.
 
   test("maps capabilities, limits and x-ollama metadata", async () => {
-    const restore = mockFetch({
+    const impl = fakeFetch({
       "/api/show": SHOW_GLM53,
       "/api/chat": () =>
         new Response(JSON.stringify(PROBE_GLM53_ERROR), { status: 400 }),
     });
-    try {
-      const model = await fetchModelSpec("glm-5.3");
-      expect(model.name).toBe("GLM 5.3");
-      expect(model.reasoning).toBe(true);
-      expect(model.tool_call).toBe(true);
-      expect(model.attachment).toBe(true);
-      expect(model.modalities?.input).toEqual(["text", "image"]);
-      expect(model.limit).toEqual({ context: 202000, output: 1048576 });
-      expect(model.release_date).toBe("2026-08-27");
-      expect(model.x_ollama.quantization).toBe("FP8");
-      expect(model.x_ollama.parameter_count).toBe(358000000000);
-    } finally {
-      restore();
-    }
+    const model = await fetchModelSpec("glm-5.3", impl);
+    expect(model.name).toBe("GLM 5.3");
+    expect(model.reasoning).toBe(true);
+    expect(model.tool_call).toBe(true);
+    expect(model.attachment).toBe(true);
+    expect(model.modalities?.input).toEqual(["text", "image"]);
+    expect(model.limit).toEqual({ context: 202000, output: 1048576 });
+    expect(model.release_date).toBe("2026-08-27");
+    expect(model.x_ollama.quantization).toBe("FP8");
+    expect(model.x_ollama.parameter_count).toBe(358000000000);
   });
 
   test("404 from /api/show fails loud", async () => {
-    const restore = mockFetch({
+    const impl = fakeFetch({
       "/api/show": () => new Response("not found", { status: 404 }),
     });
-    try {
-      await expect(fetchModelSpec("who-dis")).rejects.toThrow("HTTP 404");
-    } finally {
-      restore();
-    }
+    await expect(fetchModelSpec("who-dis", impl)).rejects.toThrow("HTTP 404");
   });
 
   test("probe without auth fails loud with a clear cause", async () => {
-    const restore = mockFetch({
+    const impl = fakeFetch({
       "/api/show": SHOW_GLM53,
       "/api/chat": () => new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }),
     });
-    try {
-      await expect(fetchModelSpec("glm-5.3")).rejects.toThrow("OLLAMA_API_KEY");
-    } finally {
-      restore();
-    }
+    await expect(fetchModelSpec("glm-5.3", impl)).rejects.toThrow("OLLAMA_API_KEY");
   });
 
   test("probe with changed error format fails loud", async () => {
-    const restore = mockFetch({
+    const impl = fakeFetch({
       "/api/show": SHOW_GLM53,
       "/api/chat": () => new Response(JSON.stringify({ error: "something else" }), { status: 400 }),
     });
-    try {
-      await expect(fetchModelSpec("glm-5.3")).rejects.toThrow("unrecognized error");
-    } finally {
-      restore();
-    }
+    await expect(fetchModelSpec("glm-5.3", impl)).rejects.toThrow("unrecognized error");
   });
+});
+
+describe("extractJson transport contract", () => {
+  const KEY = process.env.OLLAMA_API_KEY;
+  const withKey = (fn: () => Promise<void>) => async () => {
+    process.env.OLLAMA_API_KEY = "test-key";
+    try {
+      await fn();
+    } finally {
+      if (KEY === undefined) delete process.env.OLLAMA_API_KEY;
+      else process.env.OLLAMA_API_KEY = KEY;
+    }
+  };
+
+  test(
+    "sends the JSON-mode contract and parses the reply",
+    withKey(async () => {
+      const requests: { url: string; init: RequestInit | undefined }[] = [];
+      const impl = (async (input: RequestInfo | URL, init?: RequestInit) => {
+        requests.push({ url: String(input), init });
+        return new Response(
+          JSON.stringify({
+            message: {
+              content: JSON.stringify({
+                rates: [{ model: "glm-5.3", input: 1, cached_input: 0.5, output: 2 }],
+                peak_rates: [],
+              }),
+            },
+          }),
+          { status: 200 },
+        );
+      }) as typeof fetch;
+      const out = await extractJson(RateCardExtractionSchema, "INSTRUCTIONS", "USER", impl);
+      expect(out.rates).toHaveLength(1);
+      expect(requests).toHaveLength(1);
+      const { url, init } = requests[0]!;
+      expect(url).toBe("https://ollama.com/api/chat");
+      const body = JSON.parse(String(init!.body));
+      expect(body.format).toBe("json");
+      expect(body.stream).toBe(false);
+      expect(body.options.temperature).toBe(0);
+      const system = body.messages[0].content as string;
+      expect(system.startsWith("INSTRUCTIONS\n")).toBe(true);
+      expect(system).toContain("JSON Schema");
+      expect(body.messages[1].content).toBe("USER");
+      expect((init!.headers as Record<string, string>).authorization).toBe("Bearer test-key");
+    }),
+  );
+
+  test(
+    "missing OLLAMA_API_KEY aborts without a request",
+    withKey(async () => {
+      delete process.env.OLLAMA_API_KEY;
+      const impl = fakeFetch({});
+      await expect(
+        extractJson(RateCardExtractionSchema, "i", "u", impl),
+      ).rejects.toThrow("OLLAMA_API_KEY is not set");
+      process.env.OLLAMA_API_KEY = "test-key";
+    }),
+  );
+
+  test(
+    "an off-contract reply aborts",
+    withKey(async () => {
+      const impl = fakeFetch({
+        "/api/chat": () =>
+          new Response(JSON.stringify({ message: { content: "not json" } }), { status: 200 }),
+      });
+      await expect(
+        extractJson(RateCardExtractionSchema, "i", "u", impl),
+      ).rejects.toThrow();
+    }),
+  );
 });
 
 describe("rebuild gate", () => {
@@ -291,14 +346,12 @@ describe("rebuild gate", () => {
 
 describe("models list validation", () => {
   test("duplicate ids fail loud", async () => {
-    const restore = mockFetch({
+    const impl = fakeFetch({
       "/models": { data: [{ id: "glm-5.3", created: 1 }, { id: "glm-5.3", created: 2 }] },
     });
-    try {
-      await expect(fetchModelsList("https://ollama.com/v1")).rejects.toThrow("duplicate ids");
-    } finally {
-      restore();
-    }
+    await expect(
+      fetchModelsList("https://ollama.com/v1", undefined, impl),
+    ).rejects.toThrow("duplicate ids");
   });
 });
 

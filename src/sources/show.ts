@@ -1,4 +1,5 @@
-import { fetchJson, mapWithConcurrency } from "../lib/http.ts";
+import { fetchJson, fetchResponse, mapWithConcurrency, type FetchImpl } from "../lib/http.ts";
+import { CHAT_URL, ollamaAuthHeader } from "../lib/ollama.ts";
 import { displayName } from "../lib/ids.ts";
 import { ModelSchema, type Model } from "../catalog/schema.ts";
 
@@ -15,7 +16,6 @@ type ShowResponse = {
 };
 
 export const SHOW_URL = "https://ollama.com/api/show";
-const CHAT_URL = "https://ollama.com/api/chat";
 
 // The output cap is not in /api/show, but the chat endpoint leaks it: sending
 // a num_predict larger than the cap fails validation with
@@ -27,32 +27,38 @@ const CHAT_URL = "https://ollama.com/api/chat";
 const PROBE_NUM_PREDICT = 999_999_999_999_999_999;
 const MAX_OUTPUT_RE = /model's maximum output tokens \((\d+)\)/;
 
-export async function probeMaxOutput(id: string): Promise<number> {
+export async function probeMaxOutput(
+  id: string,
+  impl: FetchImpl = fetch,
+): Promise<number> {
   const headers: Record<string, string> = { "content-type": "application/json" };
-  const apiKey = process.env.OLLAMA_API_KEY;
-  if (apiKey) headers.authorization = `Bearer ${apiKey}`;
-  const res = await fetch(CHAT_URL, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      model: id,
-      messages: [{ role: "user", content: "hi" }],
-      think: false,
-      stream: false,
-      options: { num_predict: PROBE_NUM_PREDICT },
-    }),
-    signal: AbortSignal.timeout(30_000),
-  });
-  const text = await res.text();
+  const auth = ollamaAuthHeader();
+  if (auth) headers.authorization = auth;
+  const { status, text } = await fetchResponse(
+    CHAT_URL,
+    {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        model: id,
+        messages: [{ role: "user", content: "hi" }],
+        think: false,
+        stream: false,
+        options: { num_predict: PROBE_NUM_PREDICT },
+      }),
+    },
+    impl,
+  );
   let error = text;
   try {
     error = (JSON.parse(text) as { error?: string }).error ?? text;
   } catch {
     // keep raw text
   }
-  if (res.ok)
+  const ok = status >= 200 && status < 300;
+  if (ok)
     throw new Error(`output-limit probe for ${id} unexpectedly succeeded`);
-  if (res.status === 401)
+  if (status === 401)
     throw new Error(`output-limit probe for ${id} needs OLLAMA_API_KEY (HTTP 401)`);
   const match = MAX_OUTPUT_RE.exec(error);
   if (!match)
@@ -84,12 +90,16 @@ const parameterCountOf = (info: ShowResponse["model_info"]): number | undefined 
 const capability = (caps: string[] | undefined, name: string) =>
   caps?.includes(name) ?? false;
 
-export async function fetchModelSpec(id: string): Promise<Model> {
-  const show = await fetchJson<ShowResponse>(SHOW_URL, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ model: id }),
-  });
+export async function fetchModelSpec(id: string, impl: FetchImpl = fetch): Promise<Model> {
+  const show = await fetchJson<ShowResponse>(
+    SHOW_URL,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ model: id }),
+    },
+    impl,
+  );
   if (!show.modified_at) throw new Error("modified_at missing");
 
   const vision = capability(show.capabilities, "vision");
@@ -101,7 +111,7 @@ export async function fetchModelSpec(id: string): Promise<Model> {
     tool_call: capability(show.capabilities, "tools"),
     limit: {
       context: contextLengthOf(show.model_info),
-      output: await probeMaxOutput(id),
+      output: await probeMaxOutput(id, impl),
     },
     modalities: {
       input: vision ? ["text", "image"] : ["text"],

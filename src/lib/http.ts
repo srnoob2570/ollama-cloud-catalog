@@ -1,8 +1,34 @@
 // Fail-loud HTTP helpers. A broken fetch must abort the run, not write a
 // stale artifact as if it were fresh — the runtime consumer (the plugin) is
 // the fail-open side, this repo is the fail-closed side.
-export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetchText(url, init);
+export type FetchImpl = typeof fetch;
+
+// Low-level transport: returns status + body for BOTH success and expected
+// HTTP errors (the output-limit probe reads a 400 body). Only transport
+// failure — network error, timeout — throws. The impl parameter is the test
+// seam; production always passes the default fetch.
+export async function fetchResponse(
+  url: string,
+  init: RequestInit | undefined,
+  impl: FetchImpl = fetch,
+): Promise<{ status: number; text: string }> {
+  const res = await impl(url, {
+    ...init,
+    headers: {
+      "user-agent": "ollama-cloud-catalog",
+      ...init?.headers,
+    },
+    signal: AbortSignal.timeout(30_000),
+  });
+  return { status: res.status, text: await res.text() };
+}
+
+export async function fetchJson<T>(
+  url: string,
+  init?: RequestInit,
+  impl: FetchImpl = fetch,
+): Promise<T> {
+  const res = await fetchText(url, init, impl);
   try {
     return JSON.parse(res) as T;
   } catch (err) {
@@ -13,17 +39,11 @@ export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> 
 export async function fetchText(
   url: string,
   init?: RequestInit,
+  impl: FetchImpl = fetch,
 ): Promise<string> {
-  const res = await fetch(url, {
-    ...init,
-    headers: {
-      "user-agent": "ollama-cloud-catalog",
-      ...init?.headers,
-    },
-    signal: AbortSignal.timeout(30_000),
-  });
-  if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
-  return res.text();
+  const { status, text } = await fetchResponse(url, init, impl);
+  if (!(status >= 200 && status < 300)) throw new Error(`${url} -> HTTP ${status}`);
+  return text;
 }
 
 // Bounded-concurrency map: the /api/show sweep fires N workers over the id

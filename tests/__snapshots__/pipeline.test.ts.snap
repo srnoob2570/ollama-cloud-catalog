@@ -1,0 +1,23 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`rate card extraction golden prompt snapshot 1`] = `
+{
+  "instructions": "You extract Ollama's model pricing rate cards from markdown tables. TABLE 1 is the standard rate card with exactly 5 rate rows; "rates" must contain exactly those 5 rows in order. TABLE 2 is the peak-pricing rate card with exactly 2 rate rows; "peak_rates" must contain exactly those 2 rows in order. The "Model" column holds the full model id, including any tag suffix (e.g. 'gpt-oss:120b' — never drop the tag). Prices are US dollars per million tokens; strip the $ sign and report plain numbers. A '-' cell means null (no rate).",
+  "user": 
+"## Standard rate card
+| Model | Input | Cached input | Output |
+| ---  ---  ---  --- |
+| deepseek-v4-flash | $0.22 | $0.007 | $0.66 |
+| deepseek-v4-pro | $0.66 | $0.022 | $1.98 |
+| gemma4 | $0.14 | $0.05 | $0.40 |
+| glm-5.3 | $1.40 | $0.26 | $4.40 |
+| glm-5.3-flash | $0.15 | $0.03 | $0.50 |
+
+## Peak pricing
+| Model | Input | Cached input | Output |
+| ---  ---  ---  --- |
+| deepseek-v4-flash | $0.44 | $0.014 | $1.32 |
+| deepseek-v4-pro | $1.32 | $0.044 | $3.96 |"
+,
+}
+`;

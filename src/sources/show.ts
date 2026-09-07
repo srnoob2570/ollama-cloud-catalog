@@ -1,5 +1,5 @@
 import { fetchJson, fetchResponse, mapWithConcurrency, type FetchImpl } from "../lib/http.ts";
-import { CHAT_URL, ollamaAuthHeader } from "../lib/ollama.ts";
+import { CHAT_URL, AuthError, ollamaAuthHeader } from "../lib/ollama.ts";
 import { displayName } from "../lib/ids.ts";
 import { ModelSchema, type Model } from "../catalog/schema.ts";
 
@@ -59,7 +59,7 @@ export async function probeMaxOutput(
   if (ok)
     throw new Error(`output-limit probe for ${id} unexpectedly succeeded`);
   if (status === 401)
-    throw new Error(`output-limit probe for ${id} needs OLLAMA_API_KEY (HTTP 401)`);
+    throw new AuthError(`output-limit probe for ${id} needs OLLAMA_API_KEY (HTTP 401)`);
   const match = MAX_OUTPUT_RE.exec(error);
   if (!match)
     throw new Error(`output-limit probe for ${id}: unrecognized error: ${error.slice(0, 200)}`);
@@ -135,16 +135,19 @@ export async function fetchModelSpec(id: string, impl: FetchImpl = fetch): Promi
 // Concurrent sweep with per-model fallback: a failed /api/show or output
 // probe degrades to the previous catalog entry for that id; if there is
 // none, the run aborts — never ship a catalog with a model we know nothing
-// about.
+// about. Auth failures are systemic, not per-model: a 401 aborts the whole
+// sweep instead of silently republishing stale specs.
 export async function fetchAllSpecs(
   ids: string[],
   previous: Map<string, Model>,
   concurrency = 5,
+  impl: FetchImpl = fetch,
 ): Promise<Model[]> {
   return mapWithConcurrency(ids, concurrency, async (id) => {
     try {
-      return await fetchModelSpec(id);
+      return await fetchModelSpec(id, impl);
     } catch (err) {
+      if (err instanceof AuthError) throw err;
       const prior = previous.get(id);
       if (!prior)
         throw new Error(`spec fetch failed for ${id} and no previous spec exists to fall back on`, { cause: err });

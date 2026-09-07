@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import { z } from "zod";
 import { extractPricingSection, extractPricingTables } from "../src/sources/pricing-page.ts";
 import { reasoningOptionsOf, seedReasoningOptions } from "../src/sources/models-dev.ts";
-import { fetchModelSpec } from "../src/sources/show.ts";
+import { fetchAllSpecs, fetchModelSpec } from "../src/sources/show.ts";
 import { fetchModelsList } from "../src/sources/models-api.ts";
 import { modelsHash, stableStringify } from "../src/lib/artifacts.ts";
 import { displayName } from "../src/lib/ids.ts";
@@ -216,6 +217,47 @@ describe("/api/show mapping", () => {
   });
 });
 
+describe("fetchAllSpecs fallback matrix", () => {
+  const spec = () =>
+    ModelSchema.parse({
+      id: "glm-5.3",
+      name: "Glm 5.3",
+      attachment: false,
+      reasoning: true,
+      tool_call: true,
+      limit: { context: 202000 },
+      release_date: "2026-08-27",
+      x_ollama: { quantization: "FP8", ollama_family: "glm" },
+    });
+
+  test("a 401 aborts the sweep even when a previous spec exists", async () => {
+    const impl = fakeFetch({
+      "/api/show": SHOW_GLM53,
+      "/api/chat": () => new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }),
+    });
+    await expect(
+      fetchAllSpecs(["glm-5.3"], new Map([["glm-5.3", spec()]]), 1, impl),
+    ).rejects.toThrow("needs OLLAMA_API_KEY");
+  });
+
+  test("a transient per-model failure falls back to the previous spec", async () => {
+    const impl = fakeFetch({
+      "/api/show": () => new Response("boom", { status: 500 }),
+    });
+    const specs = await fetchAllSpecs(["glm-5.3"], new Map([["glm-5.3", spec()]]), 1, impl);
+    expect(specs.map((s) => s.id)).toEqual(["glm-5.3"]);
+  });
+
+  test("a failure with no previous spec aborts", async () => {
+    const impl = fakeFetch({
+      "/api/show": () => new Response("boom", { status: 500 }),
+    });
+    await expect(
+      fetchAllSpecs(["glm-5.3"], new Map(), 1, impl),
+    ).rejects.toThrow("no previous spec exists");
+  });
+});
+
 describe("extractJson transport contract", () => {
   const KEY = process.env.OLLAMA_API_KEY;
   const withKey = (fn: () => Promise<void>) => async () => {
@@ -229,7 +271,7 @@ describe("extractJson transport contract", () => {
   };
 
   test(
-    "sends the JSON-mode contract and parses the reply",
+    "sends the structured-output contract and parses the reply",
     withKey(async () => {
       const requests: { url: string; init: RequestInit | undefined }[] = [];
       const impl = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -250,16 +292,19 @@ describe("extractJson transport contract", () => {
       expect(out.rates).toHaveLength(1);
       expect(requests).toHaveLength(1);
       const { url, init } = requests[0]!;
-      expect(url).toBe("https://ollama.com/api/chat");
+      expect(url).toBe("https://ollama.com:443/api/chat");
       const body = JSON.parse(String(init!.body));
-      expect(body.format).toBe("json");
+      expect(body.format).toEqual(
+        z.toJSONSchema(RateCardExtractionSchema, { target: "draft-7", io: "input" }),
+      );
       expect(body.stream).toBe(false);
       expect(body.options.temperature).toBe(0);
       const system = body.messages[0].content as string;
       expect(system.startsWith("INSTRUCTIONS\n")).toBe(true);
       expect(system).toContain("JSON Schema");
       expect(body.messages[1].content).toBe("USER");
-      expect((init!.headers as Record<string, string>).authorization).toBe("Bearer test-key");
+      const headers = init!.headers as Record<string, string>;
+      expect(headers.Authorization ?? headers.authorization).toBe("Bearer test-key");
     }),
   );
 

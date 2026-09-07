@@ -3,14 +3,14 @@
 A models.dev-shaped model catalog for Ollama Cloud, maintained by GitHub
 Actions. Two artifacts at the repo root:
 
-- **`catalog.json`** — one provider document (`provider.models` keyed by
+- **`catalog.json`** is one provider document (`provider.models` keyed by
   model id) with the fields the [models.dev](https://models.dev) standard
   defines: `cost` (USD per million tokens), `limit`, capabilities
   (`attachment`/`reasoning`/`tool_call`), `modalities`, `release_date`.
   Ollama-specific metadata (quantization, family, parameter count) rides
   under the per-model `x_ollama` extension; the hash-gate state under the
   top-level one.
-- **`pricing.json`** — the rate card alone (cost per model), for consumers
+- **`pricing.json`** is the rate card alone (cost per model), for consumers
   that only want pricing.
 
 JSON Schemas for both live in [`schemas/`](schemas/), rendered from the
@@ -26,15 +26,15 @@ canonical zod definitions in `src/catalog/schema.ts` (`bun run gen-schemas`).
 
 Sources, in order of trust:
 
-1. `GET /v1/models` — the model list; sha256 of its `id:created` pairs is the
+1. `GET /v1/models` is the model list. sha256 of its `id:created` pairs is the
    change gate (stored in `catalog.json` → `x_ollama.models_hash`).
-2. `POST /api/show` — capabilities, context length, quantization,
+2. `POST /api/show` supplies capabilities, context length, quantization,
    parameter count, release date (`modified_at`).
-3. `POST /api/chat` output-limit probe — an oversized `num_predict` is
-   rejected with the model's real output cap before any generation, so the
-   probe costs no tokens:
+3. `POST /api/chat` output-limit probe. The endpoint rejects an oversized
+   `num_predict` with the model's real output cap before any generation, so
+   the probe costs no tokens:
    `"max_tokens (...) exceeds model's maximum output tokens (1048576) ..."`.
-4. `ollama.com/pricing` — cheerio pre-extracts `section#model-pricing`, then
+4. `ollama.com/pricing`. Cheerio pre-extracts `section#model-pricing`, then
    glm-5.3-flash extracts the rate rows with a zod-derived JSON schema.
    Rows link `/library/<id>`, so ids come straight from the page.
 
@@ -55,7 +55,7 @@ bun test && bun run typecheck
 ```
 
 Consumers (e.g. the [opencode-ollama-cloud](https://github.com/srnoob2570/opencode-ollama-cloud)
-plugin) read the artifacts from jsDelivr or raw GitHub — this repo has no
+plugin) read the artifacts from jsDelivr or raw GitHub. This repo has no
 runtime library.
 
 ## Layout

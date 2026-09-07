@@ -1,8 +1,8 @@
 // Rate-card → catalog resolution, ported from the original update-pricing.
 // Rate names come from the table's link text (family-level ids, Ollama's
-// rate card only sometimes lists tags), so: exact id match first, otherwise
-// unique family match. Ambiguous families throw, unknown rates are problems,
-// and — for the standard table — uncovered catalog models are problems.
+// rate card only sometimes lists tags), so the lookup tries the exact id
+// first and otherwise the unique family match. Ambiguous families throw, unknown rates are problems,
+// and, for the standard table, uncovered catalog models are problems.
 // Any problem aborts the update. Nothing is ever silently dropped.
 import { familyOf } from "../lib/ids.ts";
 import type { Cost, Model, RateRow } from "./schema.ts";

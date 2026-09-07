@@ -4,7 +4,7 @@ Accepted 2026-09-05
 
 ## Context
 
-`update-catalog check` tells CI whether the published catalog matches the current model list. The update mode additionally treats a week-old artifact as stale and rebuilds even when the hash matches. Unifying both modes on one decision function would give check the same staleness rule.
+`update-catalog check` tells CI whether the published catalog matches the current model list. The update mode also treats a week-old artifact as stale and rebuilds even when the hash matches. Unifying both modes on one decision function would give check the same staleness rule.
 
 ## Decision
 

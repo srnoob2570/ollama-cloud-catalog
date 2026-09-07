@@ -1,7 +1,7 @@
 // Build-time seed for the one metadata field no Ollama endpoint exposes:
 // the reasoning-effort tiers a model accepts. models.dev is the ecosystem's
 // canonical dataset (the old repo's updater seeded from it too); it is read
-// here, at update time only — the published artifact stays dependency-free.
+// here, at update time only. The published artifact stays dependency-free.
 // Absence is the honest answer when neither the seed nor the previous
 // artifact has the data: the field is simply omitted, never guessed.
 import { fetchJson } from "../lib/http.ts";
@@ -20,7 +20,7 @@ export function reasoningOptionsOf(entry: SeedModel): string[] | undefined {
 }
 
 // Best-effort by design: a models.dev outage or shape drift must not block a
-// catalog rebuild — the updater falls back to the previous artifact's values.
+// catalog rebuild; the updater falls back to the previous artifact's values.
 export async function fetchReasoningSeed(): Promise<Map<string, string[]> | undefined> {
   try {
     const doc = await fetchJson<Record<string, { models?: Record<string, SeedModel> }>>(

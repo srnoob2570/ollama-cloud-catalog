@@ -30,11 +30,11 @@ This repo publishes two artifacts for jsDelivr consumers: `catalog.json` (models
 
 ## Where things live
 
-- `src/catalog/schema.ts` — the zod schemas, single source of truth for both artifact shapes (JSON schemas in `schemas/` are generated from them).
-- `src/catalog/assemble.ts` — build, merge-back, refresh decision, publish, loaders.
-- `src/catalog/gate.ts` — the rebuild decision, pure and tested.
-- `src/catalog/extract-rates.ts` — rate-card prompt and completeness checks.
-- `src/catalog/resolve-rates.ts` — rate rows to model ids (exact, then unique family; ambiguity throws).
-- `src/sources/` — one module per upstream (models API, show endpoint, pricing page, models.dev).
-- `src/lib/http.ts` — transport (`fetchResponse`, `fetchText`, `fetchJson`); `src/lib/ollama.ts` — chat URL and optional auth header.
-- `tests/fixtures.ts` — live captures from 2026-09-05. Update by hand when Ollama changes shapes.
+- `src/catalog/schema.ts` has the zod schemas, the single source of truth for both artifact shapes (the JSON schemas in `schemas/` are generated from them).
+- `src/catalog/assemble.ts` covers build, merge-back, the refresh decision, publish, and the loaders.
+- `src/catalog/gate.ts` is the rebuild decision, pure and tested.
+- `src/catalog/extract-rates.ts` has the rate-card prompt and the completeness checks.
+- `src/catalog/resolve-rates.ts` maps rate rows to model ids (exact, then unique family; ambiguity throws).
+- `src/sources/` has one module per upstream (models API, show endpoint, pricing page, models.dev).
+- `src/lib/http.ts` is the transport (`fetchResponse`, `fetchText`, `fetchJson`); `src/lib/ollama.ts` has the chat URL and the optional auth header.
+- `tests/fixtures.ts` holds the live captures from 2026-09-05. Update by hand when Ollama changes shapes.

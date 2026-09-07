@@ -5,11 +5,11 @@
 
 ## Design
 - One-shot, top-level-await script with no CLI flags or arguments.
-- `z.toJSONSchema(schema, { target: "draft-7", io: "input" })` is the single conversion step; `src/catalog/schema.ts` remains the single source of truth — the JSON files are derived artifacts.
+- `z.toJSONSchema(schema, { target: "draft-7", io: "input" })` is the single conversion step; `src/catalog/schema.ts` remains the single source of truth. The JSON files are derived artifacts.
 - Deterministic output: 2-space indented JSON with a trailing newline, so regenerated files diff cleanly.
 
 ## Flow
-1. `mkdir("schemas", { recursive: true })` — idempotent target directory.
+1. `mkdir("schemas", { recursive: true })` creates the target directory idempotently.
 2. Iterate the fixed `[["catalog", CatalogDocSchema], ["pricing", PricingDocSchema]]` pairs.
 3. Convert each zod schema to a draft-7 JSON Schema (input shape) and write `schemas/catalog.schema.json` / `schemas/pricing.schema.json`, logging each written path.
 

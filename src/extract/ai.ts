@@ -1,9 +1,9 @@
 // Structured-output client for Ollama Cloud (extraction model:
 // glm-5.3-flash), built on the official `ollama` JS client. The JSON Schema
-// is passed in `format` and also rendered into the prompt — the endpoint
+// is passed in `format` and also rendered into the prompt. The endpoint
 // accepts json_schema formats (verified live 2026-09-07), and the earlier
 // `format: "json"` string mode is no longer used. zod validation remains the
-// backstop: anything that doesn't match the contract fails the run — no
+// backstop: anything that doesn't match the contract fails the run. No
 // silent retries, no lenient parsing.
 import { Ollama } from "ollama";
 import type { FetchImpl } from "../lib/http.ts";

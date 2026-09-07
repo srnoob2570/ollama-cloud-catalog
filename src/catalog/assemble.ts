@@ -1,7 +1,7 @@
 // Artifact assembly: build both documents from sources + previous state,
 // validate against the zod schemas, and publish atomically. Cost always
 // survives catalog rebuilds (pricing is a separate flow) and pricing updates
-// never touch specs — the two flows only share the cost fields.
+// never touch specs. The two flows only share the cost fields.
 import { CatalogDocSchema, PricingDocSchema, type CatalogDoc, type Cost, type Model, type PricingDoc } from "./schema.ts";
 import { seedReasoningOptions } from "../sources/models-dev.ts";
 import { stableStringify, writeAtomic } from "../lib/artifacts.ts";
@@ -136,7 +136,7 @@ export function refreshDecision(
 // Merge-back helper for update-pricing: refresh cost fields in the catalog
 // doc in place (specs, hash and generation stamp untouched). Peak rates ride
 // under the per-model x_ollama extension. The cost map only refreshes
-// (standard cost is never removed); the peak map is authoritative — a model
+// (standard cost is never removed); the peak map is authoritative. A model
 // the rate card no longer peak-prices loses its peak_cost.
 export function applyCosts(
   catalog: CatalogDoc,
@@ -196,7 +196,7 @@ export function previousCosts(catalog: CatalogDoc | undefined): Map<string, Cost
   return costs;
 }
 
-// Peak rates are part of the pricing flow's output too — they must survive
+// Peak rates are part of the pricing flow's output too. They must survive
 // catalog rebuilds exactly like the standard cost, or every hash-gated
 // update would silently strip them until the next weekly pricing run.
 export function previousPeakCosts(catalog: CatalogDoc | undefined): Map<string, Cost> {

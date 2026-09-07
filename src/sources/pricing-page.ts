@@ -1,8 +1,8 @@
 // Pricing source: ollama.com/pricing is server-rendered HTML. We hand the LLM
 // markdown tables (one for the standard rate card, one for peak pricing when
 // present) and keep the DOM as ground truth for structure: row counts feed
-// the completeness check, and the peak window text is read deterministically
-// — the LLM only interprets cells into JSON.
+// the completeness check, and the peak window text is read deterministically.
+// The LLM only interprets cells into JSON.
 import * as cheerio from "cheerio";
 import { fetchText } from "../lib/http.ts";
 
@@ -36,7 +36,7 @@ export function extractPricingSection(html: string): string {
 export type PricingTable = { markdown: string; rowCount: number };
 
 // The section holds up to two tables: the standard (off-peak) rate card
-// first, then — since 2026-09 — a "Peak pricing" table (2x rates, 12:00-18:00
+// first, then, since 2026-09, a "Peak pricing" table (2x rates, 12:00-18:00
 // UTC Mon-Fri) listing only the models subject to it. The peak window text
 // is read from the page, not from the LLM.
 export function extractPricingTables(html: string): {

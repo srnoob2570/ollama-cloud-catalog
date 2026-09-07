@@ -8,7 +8,7 @@ Accepted 2026-09-05
 
 ## Decision
 
-No silent retries. A reply that fails `JSON.parse` or the zod schema aborts the run. Rationale: the prompt is anchored to DOM row counts that already constrain the model, the model runs at temperature 0, and a coverage problem (a missing rate row) is exactly the kind of thing that should stop the pipeline instead of being smoothed over. The retry-free rule keeps the contract honest: if the model cannot honor it, we find out loudly.
+No silent retries. A reply that fails `JSON.parse` or the zod schema aborts the run. Rationale: the prompt is anchored to DOM row counts that already constrain the model, the model runs at temperature 0, and a coverage problem (a missing rate row) is exactly the kind of thing that should stop the pipeline instead of being smoothed over. The retry-free rule keeps the contract honest. If the model cannot honor it, we find out loudly.
 
 ## Consequences
 

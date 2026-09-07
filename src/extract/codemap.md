@@ -6,10 +6,10 @@ Structured-output LLM client for extraction tasks: turn free text (e.g. the pric
 
 ## Design
 
-- **Dual schema grounding:** the JSON Schema (zod → `z.toJSONSchema(schema, {target: "draft-7", io: "input"})`) is passed both in the `format` field of the chat request and rendered into the system prompt (`Respond with ONLY a JSON object matching this JSON Schema...`) — docs say schema-in-prompt grounds the response.
+- **Dual schema grounding:** the JSON Schema (zod → `z.toJSONSchema(schema, {target: "draft-7", io: "input"})`) is passed both in the `format` field of the chat request and rendered into the system prompt (`Respond with ONLY a JSON object matching this JSON Schema...`). The docs say schema-in-prompt grounds the response.
 - **Fail-loud validation:** `JSON.parse` of the response content (a SyntaxError is a provider contract break) followed by `schema.parse` (zod backstop for endpoints that ignore structured outputs). No silent retries, no lenient parsing.
 - Exported function:
-  - `extractJson<S extends z.ZodType>(schema: S, instructions: string, user: string, impl?: FetchImpl): Promise<z.infer<S>>` — generic over the zod schema so callers get typed output; `impl` is the same fetch test seam as `src/lib/http.ts`.
+  - `extractJson<S extends z.ZodType>(schema: S, instructions: string, user: string, impl?: FetchImpl): Promise<z.infer<S>>`, generic over the zod schema so callers get typed output; `impl` is the same fetch test seam as `src/lib/http.ts`.
 - Configuration: model from `OLLAMA_EXTRACT_MODEL` env, default `glm-5.3-flash`; requires `OLLAMA_API_KEY` (throws if unset); deterministic output via `options: {temperature: 0}`, `stream: false`.
 
 ## Flow

@@ -1,6 +1,6 @@
 // Fixtures captured from live sources (2026-09-05): a /api/show body and the
-// cheerio-cleaned pricing section. Tests run the pipeline against these —
-// no network.
+// cheerio-cleaned pricing section. Tests run the pipeline against these,
+// with no network.
 export const SHOW_GLM53 = {
   capabilities: ["completion", "tools", "thinking", "vision"],
   details: { family: "glm", quantization_level: "FP8" },

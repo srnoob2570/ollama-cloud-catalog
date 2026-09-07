@@ -1,11 +1,11 @@
 // Fail-loud HTTP helpers. A broken fetch must abort the run, not write a
-// stale artifact as if it were fresh — the runtime consumer (the plugin) is
-// the fail-open side, this repo is the fail-closed side.
+// stale artifact as if it were fresh. The runtime consumer (the plugin) is
+// the fail-open side; this repo is the fail-closed side.
 export type FetchImpl = typeof fetch;
 
 // Low-level transport: returns status + body for BOTH success and expected
 // HTTP errors (the output-limit probe reads a 400 body). Only transport
-// failure — network error, timeout — throws. The impl parameter is the test
+// failure throws, such as a network error or timeout. The impl parameter is the test
 // seam; production always passes the default fetch.
 export async function fetchResponse(
   url: string,

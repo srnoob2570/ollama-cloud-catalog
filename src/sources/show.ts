@@ -3,7 +3,7 @@ import { CHAT_URL, AuthError, ollamaAuthHeader } from "../lib/ollama.ts";
 import { displayName } from "../lib/ids.ts";
 import { ModelSchema, type Model } from "../catalog/schema.ts";
 
-// https://ollama.com/api/show — the machine endpoint behind `ollama show`.
+// https://ollama.com/api/show is the machine endpoint behind `ollama show`.
 // No auth, tagged ids included, unknown ids 404. Live response (trimmed):
 //   { capabilities: [...], details: { family, quantization_level },
 //     model_info: { "<arch>.context_length", "general.parameter_count" },
@@ -23,7 +23,7 @@ export const SHOW_URL = "https://ollama.com/api/show";
 //    for model <id> (ref: ...)"}
 // The request is rejected before any generation, so the probe costs no
 // tokens. Verified live 2026-09-05 across the fleet (limits range from 65536
-// to 1048576 — a hardcoded default would have been wrong for most models).
+// to 1048576, so a hardcoded default would have been wrong for most models).
 const PROBE_NUM_PREDICT = 999_999_999_999_999_999;
 const MAX_OUTPUT_RE = /model's maximum output tokens \((\d+)\)/;
 
@@ -120,7 +120,7 @@ export async function fetchModelSpec(id: string, impl: FetchImpl = fetch): Promi
     release_date: show.modified_at.slice(0, 10),
     x_ollama: {
       // An empty quantization_level/family (observed on minimax-m2.7) means
-      // Ollama declares nothing — the canonical value is "unknown", never
+      // Ollama declares nothing. The canonical value is "unknown", never
       // an invented guess.
       quantization: show.details?.quantization_level || "unknown",
       ollama_family: show.details?.family || "unknown",
@@ -134,7 +134,7 @@ export async function fetchModelSpec(id: string, impl: FetchImpl = fetch): Promi
 
 // Concurrent sweep with per-model fallback: a failed /api/show or output
 // probe degrades to the previous catalog entry for that id; if there is
-// none, the run aborts — never ship a catalog with a model we know nothing
+// none, the run aborts. Never ship a catalog with a model we know nothing
 // about. Auth failures are systemic, not per-model: a 401 aborts the whole
 // sweep instead of silently republishing stale specs.
 export async function fetchAllSpecs(

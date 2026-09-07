@@ -3,7 +3,7 @@ import { rename } from "node:fs/promises";
 
 // Identity of the model list: `id:created` pairs, sorted, joined. created
 // changes when Ollama touches a model, so the gate is sensitive to more than
-// add/remove — matching the hash contract of the original catalog repo.
+// add/remove, matching the hash contract of the original catalog repo.
 export const modelsHash = (models: { id: string; created: number }[]) =>
   createHash("sha256")
     .update(models.map((m) => `${m.id}:${m.created}`).sort().join("|"))
@@ -25,8 +25,8 @@ function sortKeys(value: unknown): unknown {
   return value;
 }
 
-// Atomic publish: write the sibling temp file, then rename over the target —
-// a crashed run can never leave a half-written artifact behind.
+// Atomic publish: write the sibling temp file, then rename over the target.
+// A crashed run can never leave a half-written artifact behind.
 export async function writeAtomic(path: string, contents: string) {
   const tmp = `${path}.tmp`;
   await Bun.write(tmp, contents);

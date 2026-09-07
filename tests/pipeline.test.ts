@@ -16,7 +16,7 @@ import { SHOW_GLM53, PROBE_GLM53_ERROR, PRICING_SECTION, PRICING_SECTION_PEAK } 
 
 // Route requests by URL substring: a plain value becomes a 200 JSON
 // Response, a function returns its own Response, a miss throws. Injected
-// through the fetchImpl seam (lib/http.ts) — no global mutation.
+// through the fetchImpl seam in lib/http.ts, with no global mutation.
 const fakeFetch = (routes: Record<string, unknown | (() => Response)>) =>
   (async (input: RequestInfo | URL) => {
     const url = String(input);
@@ -483,7 +483,7 @@ describe("artifact assembly", () => {
     expect(pricing.models["glm-5.3"]).toBeDefined();
 
     const costless = applyCosts(doc, new Map(), new Map());
-    // applyCosts only refreshes ids present in the cost map — specs, hash and
+    // applyCosts only refreshes ids present in the cost map. Specs, hash and
     // unknown ids keep their previous state. Standard cost is never removed;
     // the peak map is authoritative.
     expect(costless.provider.models["glm-5.3"]?.cost).toBeDefined();

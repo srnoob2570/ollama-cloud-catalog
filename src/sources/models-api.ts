@@ -1,4 +1,4 @@
-// https://ollama.com/v1/models — the machine-readable model list that gates
+// https://ollama.com/v1/models is the machine-readable model list that gates
 // the whole pipeline. Shapes observed live:
 //   { object:"list", data: [{ id, created, object:"model", owned_by }] }
 import { fetchJson, type FetchImpl } from "../lib/http.ts";

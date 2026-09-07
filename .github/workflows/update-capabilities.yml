@@ -2,7 +2,7 @@ name: update-capabilities
 
 # Manual-only by contract: forces a full spec re-extraction (capabilities,
 # limits, quantization, output probes) even when the /v1/models hash is
-# unchanged — for when Ollama quietly upgrades a served model.
+# unchanged, for when Ollama quietly upgrades a served model.
 on:
   workflow_dispatch:
 

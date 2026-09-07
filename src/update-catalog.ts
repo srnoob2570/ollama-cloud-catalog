@@ -1,7 +1,7 @@
 // update-catalog: the hash-gated pipeline.
-//   check  — exit 0 when the /v1/models hash matches the published artifact
-//   update — rebuild specs (only when the hash changed, the artifact is stale
-//            past a week, or --force), preserving cost from the old artifact
+//   check:  exit 0 when the /v1/models hash matches the published artifact
+//   update: rebuild specs (only when the hash changed, the artifact is stale
+//           past a week, or --force), preserving cost from the old artifact
 import { fetchModelsList } from "./sources/models-api.ts";
 import { fetchAllSpecs } from "./sources/show.ts";
 import { fetchReasoningSeed } from "./sources/models-dev.ts";

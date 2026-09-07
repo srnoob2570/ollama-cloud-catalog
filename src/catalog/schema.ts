@@ -11,7 +11,7 @@
 import { z } from "zod";
 
 // models.dev cost: US dollars per MILLION tokens (matches ollama.com/pricing's
-// "per million tokens" card 1:1 — no conversion anywhere in the pipeline).
+// "per million tokens" card 1:1, with no conversion anywhere in the pipeline).
 export const CostSchema = z.object({
   input: z.number().positive(),
   output: z.number().positive(),
@@ -32,7 +32,7 @@ export const ModalitiesSchema = z.object({
 export const OllamaMetaSchema = z.object({
   quantization: z.string().min(1),
   ollama_family: z.string().min(1),
-  // Omitted when Ollama reports 0 — some servers (minimax-m3) declare
+  // Omitted when Ollama reports 0. Some servers (minimax-m3) declare
   // nothing, and the canonical answer for no source is absence, not a guess.
   parameter_count: z.number().int().positive().optional(),
   // Present only on models the rate card lists under peak pricing
@@ -47,7 +47,7 @@ export const OllamaMetaSchema = z.object({
     .optional(),
   // Reasoning-effort tiers the model accepts (ollama.com/v1 maps
   // reasoning_effort onto its native think level). Not exposed by any Ollama
-  // endpoint — the only source is models.dev's per-model entry, read as a
+  // endpoint. The only source is models.dev's per-model entry, read as a
   // build-time seed; absent when neither seed nor previous artifact has it.
   reasoning_options: z.array(z.string()).optional(),
 });

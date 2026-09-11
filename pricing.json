@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/srnoob2570/ollama-cloud-catalog/main/schemas/pricing.schema.json",
-  "generated_at": "2026-09-05T11:52:44.615Z",
+  "generated_at": "2026-09-11T05:27:03.717Z",
   "models": {
     "deepseek-v4-flash:0731": {
       "cache_read": 0.007,
@@ -11,6 +11,11 @@
       "cache_read": 0.022,
       "input": 0.66,
       "output": 1.98
+    },
+    "deepseek-v4.1-flash": {
+      "cache_read": 0.003,
+      "input": 0.15,
+      "output": 0.6
     },
     "gemma4:31b": {
       "cache_read": 0.05,
@@ -108,6 +113,11 @@
         "cache_read": 0.044,
         "input": 1.32,
         "output": 3.96
+      },
+      "deepseek-v4.1-flash": {
+        "cache_read": 0.006,
+        "input": 0.3,
+        "output": 1.2
       }
     },
     "peak_window": "Peak pricing applies between 12:00 and 18:00 UTC, Monday to Friday."

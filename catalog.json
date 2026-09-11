@@ -87,6 +87,11 @@
       },
       "deepseek-v4.1-flash": {
         "attachment": true,
+        "cost": {
+          "cache_read": 0.003,
+          "input": 0.15,
+          "output": 0.6
+        },
         "id": "deepseek-v4.1-flash",
         "limit": {
           "context": 1048576,
@@ -108,6 +113,11 @@
         "x_ollama": {
           "ollama_family": "deepseek_v41",
           "parameter_count": 763205315794,
+          "peak_cost": {
+            "cache_read": 0.006,
+            "input": 0.3,
+            "output": 1.2
+          },
           "quantization": "FP8"
         }
       },

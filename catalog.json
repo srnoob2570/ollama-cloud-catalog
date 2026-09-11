@@ -85,6 +85,32 @@
           ]
         }
       },
+      "deepseek-v4.1-flash": {
+        "attachment": true,
+        "id": "deepseek-v4.1-flash",
+        "limit": {
+          "context": 1048576,
+          "output": 393216
+        },
+        "modalities": {
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "Deepseek V4.1 Flash",
+        "reasoning": true,
+        "release_date": "2026-09-10",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "deepseek_v41",
+          "parameter_count": 763205315794,
+          "quantization": "FP8"
+        }
+      },
       "gemma4:31b": {
         "attachment": true,
         "cost": {
@@ -639,8 +665,8 @@
     "npm": "@ai-sdk/openai-compatible"
   },
   "x_ollama": {
-    "generated_at": "2026-09-05T12:17:54.297Z",
-    "models_hash": "e06ea128b326f65bf969a63418eba2277f53ca5e4b266ee92d049054d45609a4",
+    "generated_at": "2026-09-11T00:20:08.165Z",
+    "models_hash": "7ad9a72aa29ea9a35e4ca7a1a9d388c936f778fa916ab8a18c66c4cbf1b37dd2",
     "sources": {
       "models": "https://ollama.com/v1/models",
       "show": "https://ollama.com/api/show"

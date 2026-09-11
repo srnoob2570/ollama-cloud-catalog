@@ -118,7 +118,12 @@
             "input": 0.3,
             "output": 1.2
           },
-          "quantization": "FP8"
+          "quantization": "FP8",
+          "reasoning_options": [
+            "low",
+            "high",
+            "max"
+          ]
         }
       },
       "gemma4:31b": {
@@ -675,7 +680,7 @@
     "npm": "@ai-sdk/openai-compatible"
   },
   "x_ollama": {
-    "generated_at": "2026-09-11T05:48:50.431Z",
+    "generated_at": "2026-09-11T06:16:44.044Z",
     "models_hash": "7ad9a72aa29ea9a35e4ca7a1a9d388c936f778fa916ab8a18c66c4cbf1b37dd2",
     "sources": {
       "models": "https://ollama.com/v1/models",

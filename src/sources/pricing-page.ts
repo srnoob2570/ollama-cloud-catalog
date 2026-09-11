@@ -9,28 +9,26 @@ import { fetchText } from "../lib/http.ts";
 export const PRICING_URL = "https://ollama.com/pricing";
 
 export async function fetchPricingHtml(): Promise<string> {
-  return fetchText(PRICING_URL);
+    return fetchText(PRICING_URL);
 }
 
 // Keep the pricing section's table skeleton and row anchors; drop classes,
 // styles and scripts that carry no data. Throws if the section disappears.
 export function extractPricingSection(html: string): string {
-  const $ = cheerio.load(html);
-  const section = $("section#model-pricing");
-  if (section.length === 0)
-    throw new Error("ollama.com/pricing: no section#model-pricing found");
-  section.find("script,style,svg,nav,footer").remove();
-  $("*", section)
-    .contents()
-    .filter((_, el) => el.type === "comment")
-    .remove();
-  section.find("*").each((_, el) => {
-    const attrs = (el as { attribs?: Record<string, string> }).attribs;
-    if (!attrs) return;
-    for (const name of Object.keys(attrs))
-      if (!(el.tagName === "a" && name === "href")) delete attrs[name];
-  });
-  return $.html(section);
+    const $ = cheerio.load(html);
+    const section = $("section#model-pricing");
+    if (section.length === 0) throw new Error("ollama.com/pricing: no section#model-pricing found");
+    section.find("script,style,svg,nav,footer").remove();
+    $("*", section)
+        .contents()
+        .filter((_, el) => el.type === "comment")
+        .remove();
+    section.find("*").each((_, el) => {
+        const attrs = (el as { attribs?: Record<string, string> }).attribs;
+        if (!attrs) return;
+        for (const name of Object.keys(attrs)) if (!(el.tagName === "a" && name === "href")) delete attrs[name];
+    });
+    return $.html(section);
 }
 
 export type PricingTable = { markdown: string; rowCount: number };
@@ -40,59 +38,54 @@ export type PricingTable = { markdown: string; rowCount: number };
 // UTC Mon-Fri) listing only the models subject to it. The peak window text
 // is read from the page, not from the LLM.
 export function extractPricingTables(html: string): {
-  standard: PricingTable;
-  peak: PricingTable | undefined;
-  peakWindow: string | undefined;
+    standard: PricingTable;
+    peak: PricingTable | undefined;
+    peakWindow: string | undefined;
 } {
-  const $ = cheerio.load(extractPricingSection(html));
-  const tableToMarkdown = (table: cheerio.Cheerio<any>): PricingTable => {
-    const rows = table
-      .find("tr")
-      .map((_, tr) =>
-        $(tr)
-          .find("th,td")
-          .map((__, cell) => $(cell).text().replace(/\s+/g, " ").trim())
-          .get()
-          .join(" | "),
-      )
-      .get()
-      .filter((line) => line.length > 0);
-    if (rows.length < 2)
-      throw new Error("pricing table has no header + data rows");
-    const [header, ...data] = rows;
-    return {
-      markdown: [
-        `| ${header} |`,
-        `|${new Array(header!.split("|").length).fill(" --- ").join("")}|`,
-        ...data.map((r) => `| ${r} |`),
-      ].join("\n"),
-      rowCount: data.length,
+    const $ = cheerio.load(extractPricingSection(html));
+    const tableToMarkdown = (table: cheerio.Cheerio<any>): PricingTable => {
+        const rows = table
+            .find("tr")
+            .map((_, tr) =>
+                $(tr)
+                    .find("th,td")
+                    .map((__, cell) => $(cell).text().replace(/\s+/g, " ").trim())
+                    .get()
+                    .join(" | "),
+            )
+            .get()
+            .filter((line) => line.length > 0);
+        if (rows.length < 2) throw new Error("pricing table has no header + data rows");
+        const [header, ...data] = rows;
+        return {
+            markdown: [
+                `| ${header} |`,
+                `|${new Array(header!.split("|").length).fill(" --- ").join("")}|`,
+                ...data.map((r) => `| ${r} |`),
+            ].join("\n"),
+            rowCount: data.length,
+        };
     };
-  };
-  const tables = $("table").toArray();
-  if (tables.length === 0)
-    throw new Error("pricing section contains no tables");
-  const standard = tableToMarkdown($(tables[0]!));
-  let peak: PricingTable | undefined;
-  let peakWindow: string | undefined;
-  const peakHeading = $("h3")
-    .toArray()
-    .find((h) => /peak pricing/i.test($(h).text()));
-  if (peakHeading) {
-    // The table may be a direct sibling or wrapped in a div (live page:
-    // <h3/> <p/> <div class="overflow-x-auto"><table/></div>).
-    const direct = $(peakHeading).nextAll("table").first();
-    const peakTable =
-      direct.length > 0 ? direct : $(peakHeading).nextAll().find("table").first();
-    if (peakTable.length === 0)
-      throw new Error("peak pricing heading found but no table after it");
-    // A peak rate card without its window text would diverge silently from
-    // the catalog (peak_cost without x_ollama in pricing.json); refuse.
-    const windowText = $(peakHeading).nextAll("p").first().text().replace(/\s+/g, " ").trim();
-    if (!windowText)
-      throw new Error("peak pricing table found but its window paragraph is missing");
-    peakWindow = windowText;
-    peak = tableToMarkdown(peakTable);
-  }
-  return { standard, peak, peakWindow };
+    const tables = $("table").toArray();
+    if (tables.length === 0) throw new Error("pricing section contains no tables");
+    const standard = tableToMarkdown($(tables[0]!));
+    let peak: PricingTable | undefined;
+    let peakWindow: string | undefined;
+    const peakHeading = $("h3")
+        .toArray()
+        .find((h) => /peak pricing/i.test($(h).text()));
+    if (peakHeading) {
+        // The table may be a direct sibling or wrapped in a div (live page:
+        // <h3/> <p/> <div class="overflow-x-auto"><table/></div>).
+        const direct = $(peakHeading).nextAll("table").first();
+        const peakTable = direct.length > 0 ? direct : $(peakHeading).nextAll().find("table").first();
+        if (peakTable.length === 0) throw new Error("peak pricing heading found but no table after it");
+        // A peak rate card without its window text would diverge silently from
+        // the catalog (peak_cost without x_ollama in pricing.json); refuse.
+        const windowText = $(peakHeading).nextAll("p").first().text().replace(/\s+/g, " ").trim();
+        if (!windowText) throw new Error("peak pricing table found but its window paragraph is missing");
+        peakWindow = windowText;
+        peak = tableToMarkdown(peakTable);
+    }
+    return { standard, peak, peakWindow };
 }

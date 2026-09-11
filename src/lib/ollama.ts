@@ -9,6 +9,6 @@ export const CHAT_URL = "https://ollama.com/api/chat";
 export class AuthError extends Error {}
 
 export function ollamaAuthHeader(): string | undefined {
-  const apiKey = process.env.OLLAMA_API_KEY;
-  return apiKey ? `Bearer ${apiKey}` : undefined;
+    const apiKey = process.env.OLLAMA_API_KEY;
+    return apiKey ? `Bearer ${apiKey}` : undefined;
 }

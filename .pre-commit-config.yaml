@@ -1,0 +1,18 @@
+# See https://pre-commit.com for more information
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: end-of-file-fixer # files end with exactly one newline
+  - repo: local
+    hooks:
+      - id: prettier
+        name: "prettier (ts: tab-width 4, print-width 120)"
+        entry: bunx prettier --write --tab-width 4 --print-width 120
+        language: system
+        types_or: [ts, tsx]
+      - id: typecheck
+        name: typecheck (tsc --noEmit)
+        entry: bun run typecheck
+        language: system
+        pass_filenames: false

@@ -4,25 +4,24 @@
 import { fetchJson, type FetchImpl } from "../lib/http.ts";
 
 type ListResponse = {
-  data?: { id: string; created: number }[];
+    data?: { id: string; created: number }[];
 };
 
 export type ListedModel = { id: string; created: number };
 
 export async function fetchModelsList(
-  baseUrl: string,
-  init?: RequestInit,
-  impl: FetchImpl = fetch,
+    baseUrl: string,
+    init?: RequestInit,
+    impl: FetchImpl = fetch,
 ): Promise<ListedModel[]> {
-  const body = await fetchJson<ListResponse>(`${baseUrl}/models`, init, impl);
-  const models = body.data;
-  if (!Array.isArray(models) || models.length === 0)
-    throw new Error(`${baseUrl}/models: empty or unrecognized payload`);
-  for (const m of models)
-    if (typeof m?.id !== "string" || typeof m?.created !== "number")
-      throw new Error(`${baseUrl}/models: entry without id/created`);
-  const ids = models.map((m) => m.id);
-  if (ids.length !== new Set(ids).size)
-    throw new Error(`${baseUrl}/models: duplicate ids`);
-  return models;
+    const body = await fetchJson<ListResponse>(`${baseUrl}/models`, init, impl);
+    const models = body.data;
+    if (!Array.isArray(models) || models.length === 0)
+        throw new Error(`${baseUrl}/models: empty or unrecognized payload`);
+    for (const m of models)
+        if (typeof m?.id !== "string" || typeof m?.created !== "number")
+            throw new Error(`${baseUrl}/models: entry without id/created`);
+    const ids = models.map((m) => m.id);
+    if (ids.length !== new Set(ids).size) throw new Error(`${baseUrl}/models: duplicate ids`);
+    return models;
 }

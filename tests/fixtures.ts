@@ -2,20 +2,19 @@
 // cheerio-cleaned pricing section. Tests run the pipeline against these,
 // with no network.
 export const SHOW_GLM53 = {
-  capabilities: ["completion", "tools", "thinking", "vision"],
-  details: { family: "glm", quantization_level: "FP8" },
-  model_info: {
-    "glm5.context_length": 202000,
-    "general.parameter_count": 358000000000,
-  },
-  modified_at: "2026-08-27T10:15:30.123456Z",
+    capabilities: ["completion", "tools", "thinking", "vision"],
+    details: { family: "glm", quantization_level: "FP8" },
+    model_info: {
+        "glm5.context_length": 202000,
+        "general.parameter_count": 358000000000,
+    },
+    modified_at: "2026-08-27T10:15:30.123456Z",
 };
 
 // Captured from a live probe (2026-09-05): the chat endpoint rejects an
 // oversized num_predict with the model's real output cap.
 export const PROBE_GLM53_ERROR = {
-  error:
-    "max_tokens (999999999999999999) exceeds model's maximum output tokens (1048576) for model glm-5.3 (ref: 7b387ec0-dcd8-43ca-972d-c177b1214d65)",
+    error: "max_tokens (999999999999999999) exceeds model's maximum output tokens (1048576) for model glm-5.3 (ref: 7b387ec0-dcd8-43ca-972d-c177b1214d65)",
 };
 
 // Minimal but realistic pricing section: ids come from /library/ links.
@@ -55,9 +54,9 @@ export const PRICING_SECTION_PEAK = `<section id="model-pricing">
 </section>`;
 
 export const MODELS_LIST = {
-  object: "list",
-  data: [
-    { id: "glm-5.3", created: 1756292130, object: "model", owned_by: "ollama" },
-    { id: "glm-5.3-flash", created: 1756292200, object: "model", owned_by: "ollama" },
-  ],
+    object: "list",
+    data: [
+        { id: "glm-5.3", created: 1756292130, object: "model", owned_by: "ollama" },
+        { id: "glm-5.3-flash", created: 1756292200, object: "model", owned_by: "ollama" },
+    ],
 };

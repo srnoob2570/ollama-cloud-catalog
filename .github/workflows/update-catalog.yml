@@ -28,11 +28,12 @@ jobs:
       - name: Update catalog (skips scraping if model list unchanged)
         env:
           OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
-        run: bun src/update-catalog.ts update
+        run: |
+          bun install --frozen-lockfile
+          bun src/update-catalog.ts update
 
       - name: Test and typecheck
         run: |
-          bun install --frozen-lockfile
           bun test
           bunx tsc --noEmit
 

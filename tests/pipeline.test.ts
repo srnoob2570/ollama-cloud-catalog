@@ -15,7 +15,13 @@ import {
     RateCardExtractionSchema,
     type CatalogDoc,
 } from "../src/catalog/schema.ts";
-import { buildCatalogDoc, buildPricingDoc, applyCosts, refreshDecision } from "../src/catalog/assemble.ts";
+import {
+    buildCatalogDoc,
+    buildPricingDoc,
+    applyCosts,
+    refreshDecision,
+    modelsWithoutCost,
+} from "../src/catalog/assemble.ts";
 import { buildRatePrompt, extractRates } from "../src/catalog/extract-rates.ts";
 import { extractJson } from "../src/extract/ai.ts";
 import { SHOW_GLM53, PROBE_GLM53_ERROR, PRICING_SECTION, PRICING_SECTION_PEAK } from "./fixtures.ts";
@@ -528,6 +534,39 @@ describe("artifact assembly", () => {
             cache_read: 0.3,
         });
         expect(costless.x_ollama.models_hash).toBe(doc.x_ollama.models_hash);
+    });
+
+    test("costless models are the ones the cost map does not cover", () => {
+        const spec = (id: string) =>
+            ModelSchema.parse({
+                id,
+                name: id,
+                attachment: false,
+                reasoning: true,
+                tool_call: true,
+                limit: { context: 202000 },
+                release_date: "2026-08-27",
+                x_ollama: { quantization: "FP8", ollama_family: "glm" },
+            });
+        const specs = [spec("glm-5.3"), spec("glm-5.3-flash")];
+        const doc = buildCatalogDoc({
+            modelsHash: "a".repeat(64),
+            specs,
+            costs: new Map([["glm-5.3", { input: 1.4, output: 4.4, cache_read: 0.26 }]]),
+        });
+        expect(modelsWithoutCost(doc)).toEqual(["glm-5.3-flash"]);
+        expect(
+            modelsWithoutCost(
+                buildCatalogDoc({
+                    modelsHash: "a".repeat(64),
+                    specs,
+                    costs: new Map([
+                        ["glm-5.3", { input: 1.4, output: 4.4, cache_read: 0.26 }],
+                        ["glm-5.3-flash", { input: 0.15, output: 0.5, cache_read: 0.03 }],
+                    ]),
+                }),
+            ),
+        ).toEqual([]);
     });
 
     test("peak costs land under x_ollama.peak_cost and in pricing.json", () => {

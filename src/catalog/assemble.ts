@@ -79,6 +79,12 @@ export function buildCatalogDoc(sources: CatalogSources): CatalogDoc {
     return CatalogDocSchema.parse(doc);
 }
 
+export function modelsWithoutCost(doc: CatalogDoc): string[] {
+    return Object.values(doc.provider.models)
+        .filter((model) => !model.cost)
+        .map((model) => model.id);
+}
+
 export function buildPricingDoc(
     costById: Map<string, Cost>,
     peak?: { window: string; costById: Map<string, Cost> },

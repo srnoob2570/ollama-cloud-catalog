@@ -9,6 +9,7 @@ import {
     buildCatalogDoc,
     CATALOG_PATH,
     loadCatalog,
+    modelsWithoutCost,
     previousCosts,
     previousPeakCosts,
     previousReasoningOptions,
@@ -65,6 +66,6 @@ const doc = buildCatalogDoc({
 });
 await publishCatalog(doc);
 
-const withoutCost = specs.filter((s) => !s.cost).map((s) => s.id);
+const withoutCost = modelsWithoutCost(doc);
 if (withoutCost.length > 0) console.warn(`! models without cost (run update-pricing): ${withoutCost.join(", ")}`);
 console.log(`published ${CATALOG_PATH}: ${specs.length} models`);

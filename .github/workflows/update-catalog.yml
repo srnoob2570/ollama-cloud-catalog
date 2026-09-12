@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: update-catalog
+  group: publish-artifacts
   cancel-in-progress: false
 
 jobs:

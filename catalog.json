@@ -14,6 +14,7 @@
           "input": 0.22,
           "output": 0.66
         },
+        "description": "Official DeepSeek V4 Flash release with enhanced agentic capabilities and integrated DSpark speculative decoding",
         "id": "deepseek-v4-flash:0731",
         "limit": {
           "context": 1048576,
@@ -30,6 +31,7 @@
         "name": "Deepseek V4 Flash 0731",
         "reasoning": true,
         "release_date": "2026-07-31",
+        "temperature": true,
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "deepseek4",
@@ -41,6 +43,8 @@
           },
           "quantization": "FP8",
           "reasoning_options": [
+            "low",
+            "medium",
             "high",
             "max"
           ]
@@ -53,6 +57,7 @@
           "input": 0.66,
           "output": 1.98
         },
+        "description": "Flagship DeepSeek model for coding, reasoning, and agentic work",
         "id": "deepseek-v4-pro:0813",
         "limit": {
           "context": 1048576,
@@ -80,6 +85,8 @@
           },
           "quantization": "FP8",
           "reasoning_options": [
+            "low",
+            "medium",
             "high",
             "max"
           ]
@@ -92,6 +99,7 @@
           "input": 0.15,
           "output": 0.6
         },
+        "description": "DeepSeek V4.1 Flash model for reasoning and agentic coding",
         "id": "deepseek-v4.1-flash",
         "limit": {
           "context": 1048576,
@@ -109,6 +117,7 @@
         "name": "Deepseek V4.1 Flash",
         "reasoning": true,
         "release_date": "2026-09-10",
+        "temperature": true,
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "deepseek_v41",
@@ -121,6 +130,7 @@
           "quantization": "FP8",
           "reasoning_options": [
             "low",
+            "medium",
             "high",
             "max"
           ]
@@ -133,6 +143,7 @@
           "input": 0.14,
           "output": 0.4
         },
+        "description": "Open Gemma instruction model for efficient chat and self-hosted deployments",
         "id": "gemma4:31b",
         "limit": {
           "context": 262144,
@@ -154,7 +165,13 @@
         "x_ollama": {
           "ollama_family": "gemma4",
           "parameter_count": 32682372656,
-          "quantization": "BF16"
+          "quantization": "BF16",
+          "reasoning_options": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
         }
       },
       "glm-5.1": {
@@ -164,6 +181,7 @@
           "input": 1,
           "output": 3.2
         },
+        "description": "Flagship GLM model for hybrid reasoning, coding, and agentic engineering",
         "id": "glm-5.1",
         "limit": {
           "context": 202752,
@@ -184,7 +202,13 @@
         "x_ollama": {
           "ollama_family": "glm5.1",
           "parameter_count": 756162687872,
-          "quantization": "FP8"
+          "quantization": "FP8",
+          "reasoning_options": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
         }
       },
       "glm-5.2": {
@@ -194,6 +218,7 @@
           "input": 1.4,
           "output": 4.4
         },
+        "description": "Open flagship GLM for long-horizon coding agents and million-token context work",
         "id": "glm-5.2",
         "limit": {
           "context": 1048576,
@@ -210,12 +235,15 @@
         "name": "GLM 5.2",
         "reasoning": true,
         "release_date": "2026-06-16",
+        "temperature": true,
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "glm5.2",
           "parameter_count": 756162687872,
           "quantization": "unknown",
           "reasoning_options": [
+            "low",
+            "medium",
             "high",
             "max"
           ]
@@ -228,6 +256,7 @@
           "input": 1.4,
           "output": 4.4
         },
+        "description": "Flagship GLM model for long-horizon coding, agents, and complex project delivery",
         "id": "glm-5.3",
         "limit": {
           "context": 1048576,
@@ -244,6 +273,7 @@
         "name": "GLM 5.3",
         "reasoning": true,
         "release_date": "2026-08-28",
+        "temperature": true,
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "glm_dsa_moe",
@@ -251,6 +281,7 @@
           "quantization": "FP8",
           "reasoning_options": [
             "low",
+            "medium",
             "high",
             "max"
           ]
@@ -263,6 +294,7 @@
           "input": 0.15,
           "output": 0.5
         },
+        "description": "Native multimodal GLM model for efficient coding and long-horizon agent tasks",
         "id": "glm-5.3-flash",
         "limit": {
           "context": 1048576,
@@ -280,6 +312,7 @@
         "name": "GLM 5.3 Flash",
         "reasoning": true,
         "release_date": "2026-08-26",
+        "temperature": true,
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "glm5_next",
@@ -287,6 +320,7 @@
           "quantization": "FP8",
           "reasoning_options": [
             "low",
+            "medium",
             "high",
             "max"
           ]
@@ -299,6 +333,7 @@
           "input": 0.15,
           "output": 0.6
         },
+        "description": "Open-weight GPT model for self-hosted reasoning and instruction-following workloads",
         "id": "gpt-oss:120b",
         "limit": {
           "context": 131072,
@@ -323,7 +358,8 @@
           "reasoning_options": [
             "low",
             "medium",
-            "high"
+            "high",
+            "max"
           ]
         }
       },
@@ -334,6 +370,7 @@
           "input": 0.07,
           "output": 0.3
         },
+        "description": "Open-weight GPT model for self-hosted reasoning and instruction-following workloads",
         "id": "gpt-oss:20b",
         "limit": {
           "context": 131072,
@@ -358,7 +395,8 @@
           "reasoning_options": [
             "low",
             "medium",
-            "high"
+            "high",
+            "max"
           ]
         }
       },
@@ -369,6 +407,7 @@
           "input": 0.95,
           "output": 4
         },
+        "description": "Kimi multimodal agent model for visual understanding, coding, and planning",
         "id": "kimi-k2.6",
         "limit": {
           "context": 262144,
@@ -390,7 +429,13 @@
         "x_ollama": {
           "ollama_family": "kimi-k2",
           "parameter_count": 1042000000000,
-          "quantization": "INT4"
+          "quantization": "INT4",
+          "reasoning_options": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
         }
       },
       "kimi-k2.7-code": {
@@ -400,6 +445,7 @@
           "input": 0.95,
           "output": 4
         },
+        "description": "Coding-focused Kimi model, stronger on long-horizon repo work with less overthinking",
         "id": "kimi-k2.7-code",
         "limit": {
           "context": 262144,
@@ -417,11 +463,18 @@
         "name": "Kimi K2.7 Code",
         "reasoning": true,
         "release_date": "2026-06-12",
+        "temperature": false,
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "kimi-k2",
           "parameter_count": 1042000000000,
-          "quantization": "INT4"
+          "quantization": "INT4",
+          "reasoning_options": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
         }
       },
       "kimi-k3": {
@@ -431,6 +484,7 @@
           "input": 3,
           "output": 15
         },
+        "description": "Multimodal Kimi model with 1M context and toggleable max-effort thinking for long-horizon agent work",
         "id": "kimi-k3",
         "limit": {
           "context": 1048576,
@@ -448,6 +502,7 @@
         "name": "Kimi K3",
         "reasoning": true,
         "release_date": "2026-07-27",
+        "temperature": false,
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "kimi-k3",
@@ -455,6 +510,7 @@
           "quantization": "MXFP4",
           "reasoning_options": [
             "low",
+            "medium",
             "high",
             "max"
           ]
@@ -467,6 +523,7 @@
           "input": 0.3,
           "output": 1.2
         },
+        "description": "MiniMax model for chat, coding, office work, and agentic tasks",
         "id": "minimax-m2.7",
         "limit": {
           "context": 196608,
@@ -487,7 +544,13 @@
         "x_ollama": {
           "ollama_family": "minimax-m2",
           "parameter_count": 229000000000,
-          "quantization": "unknown"
+          "quantization": "unknown",
+          "reasoning_options": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
         }
       },
       "minimax-m3": {
@@ -497,6 +560,7 @@
           "input": 0.6,
           "output": 2.4
         },
+        "description": "MiniMax multimodal coding model for long-context reasoning and agent tasks",
         "id": "minimax-m3",
         "limit": {
           "context": 512000,
@@ -514,6 +578,7 @@
         "name": "Minimax M3",
         "reasoning": true,
         "release_date": "2026-06-01",
+        "temperature": true,
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "minimax-m3",
@@ -532,6 +597,7 @@
           "input": 0.5,
           "output": 1.5
         },
+        "description": "Flagship Mistral model for advanced reasoning, coding, and multilingual work",
         "id": "mistral-large-3:675b",
         "limit": {
           "context": 262144,
@@ -553,7 +619,13 @@
         "x_ollama": {
           "ollama_family": "mistral3",
           "parameter_count": 675000000000,
-          "quantization": "FP8"
+          "quantization": "FP8",
+          "reasoning_options": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
         }
       },
       "nemotron-3-nano:30b": {
@@ -562,6 +634,7 @@
           "input": 0.06,
           "output": 0.24
         },
+        "description": "Small Nemotron 3 MoE for efficient coding, math, and long-context agents",
         "id": "nemotron-3-nano:30b",
         "limit": {
           "context": 262144,
@@ -578,11 +651,18 @@
         "name": "Nemotron 3 Nano 30B",
         "reasoning": true,
         "release_date": "2025-12-15",
+        "temperature": true,
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "nemotron-3-nano",
           "parameter_count": 32000000000,
-          "quantization": "FP8"
+          "quantization": "FP8",
+          "reasoning_options": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
         }
       },
       "nemotron-3-super": {
@@ -592,6 +672,7 @@
           "input": 0.015,
           "output": 0.6
         },
+        "description": "Nemotron middle tier for collaborative agents and high-volume reasoning workloads",
         "id": "nemotron-3-super",
         "limit": {
           "context": 262144,
@@ -608,11 +689,18 @@
         "name": "Nemotron 3 Super",
         "reasoning": true,
         "release_date": "2026-03-11",
+        "temperature": true,
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "nemotron_h_moe",
           "parameter_count": 120000000000,
-          "quantization": "NVFP4"
+          "quantization": "NVFP4",
+          "reasoning_options": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
         }
       },
       "nemotron-3-ultra": {
@@ -622,6 +710,7 @@
           "input": 0.1,
           "output": 3
         },
+        "description": "Largest Nemotron 3 model for maximum open-weight reasoning and agent accuracy",
         "id": "nemotron-3-ultra",
         "limit": {
           "context": 262144,
@@ -638,11 +727,18 @@
         "name": "Nemotron 3 Ultra",
         "reasoning": true,
         "release_date": "2026-06-04",
+        "temperature": true,
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "unknown",
           "parameter_count": 550000000000,
-          "quantization": "unknown"
+          "quantization": "unknown",
+          "reasoning_options": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
         }
       },
       "qwen3.5:397b": {
@@ -651,6 +747,7 @@
           "input": 0.6,
           "output": 3.6
         },
+        "description": "Qwen vision-language model for visual reasoning, documents, and agent tasks",
         "id": "qwen3.5:397b",
         "limit": {
           "context": 262144,
@@ -672,7 +769,13 @@
         "x_ollama": {
           "ollama_family": "qwen3.5",
           "parameter_count": 397000000000,
-          "quantization": "BF16"
+          "quantization": "BF16",
+          "reasoning_options": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
         }
       }
     },
@@ -680,7 +783,7 @@
     "npm": "@ai-sdk/openai-compatible"
   },
   "x_ollama": {
-    "generated_at": "2026-09-11T06:16:44.044Z",
+    "generated_at": "2026-09-12T23:48:15.181Z",
     "models_hash": "7ad9a72aa29ea9a35e4ca7a1a9d388c936f778fa916ab8a18c66c4cbf1b37dd2",
     "sources": {
       "models": "https://ollama.com/v1/models",

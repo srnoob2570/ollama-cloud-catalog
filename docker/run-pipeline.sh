@@ -54,27 +54,44 @@ if [[ "$MODE" == "check" ]]; then
     exit 0
 fi
 
+# Commit and push only when a pipeline touched an artifact. A successful push
+# purges both files from jsDelivr; a failed purge is a warning, not a failure.
+publish() {
+    local message="$1"
+    if [[ -z "$(git status --porcelain catalog.json pricing.json)" ]]; then
+        echo "==> artifacts unchanged, nothing to commit"
+        return 0
+    fi
+    git add catalog.json pricing.json
+    git -c user.name="ollama-cloud-catalog-bot" \
+        -c user.email="bot@users.noreply.github.com" \
+        commit -m "$message"
+    git push origin HEAD:main
+    echo "==> published: $message"
+    for file in catalog.json pricing.json; do
+        curl -fsS "https://purge.jsdelivr.net/gh/srnoob2570/ollama-cloud-catalog@main/${file}" >/dev/null ||
+            echo "warning: jsDelivr purge failed for ${file}" >&2
+    done
+}
+
 case "$MODE" in
-    update) COMMIT_MSG="chore: refresh ollama cloud catalog" CMD=(bun src/update-catalog.ts update) ;;
-    force) COMMIT_MSG="chore: force-refresh ollama cloud capabilities" CMD=(bun src/update-catalog.ts update --force) ;;
-    pricing) COMMIT_MSG="chore: refresh ollama cloud pricing" CMD=(bun src/update-pricing.ts) ;;
+    update)
+        before="$(git rev-parse HEAD)"
+        timeout 900 bun src/update-catalog.ts update
+        publish "chore: refresh ollama cloud catalog"
+        # A rebuild re-extracts specs for every model but leaves new ones
+        # without a rate; refresh pricing now instead of waiting for Monday.
+        if [[ "$(git rev-parse HEAD)" != "$before" ]]; then
+            timeout 900 bun src/update-pricing.ts
+            publish "chore: refresh ollama cloud pricing"
+        fi
+        ;;
+    force)
+        timeout 900 bun src/update-catalog.ts update --force
+        publish "chore: force-refresh ollama cloud capabilities"
+        ;;
+    pricing)
+        timeout 900 bun src/update-pricing.ts
+        publish "chore: refresh ollama cloud pricing"
+        ;;
 esac
-
-timeout 900 "${CMD[@]}"
-
-if [[ -z "$(git status --porcelain catalog.json pricing.json)" ]]; then
-    echo "==> artifacts unchanged, nothing to commit"
-    exit 0
-fi
-
-git add catalog.json pricing.json
-git -c user.name="ollama-cloud-catalog-bot" \
-    -c user.email="bot@users.noreply.github.com" \
-    commit -m "$COMMIT_MSG"
-git push origin HEAD:main
-echo "==> published: $COMMIT_MSG"
-
-for file in catalog.json pricing.json; do
-    curl -fsS "https://purge.jsdelivr.net/gh/srnoob2570/ollama-cloud-catalog@main/${file}" >/dev/null ||
-        echo "warning: jsDelivr purge failed for ${file}" >&2
-done

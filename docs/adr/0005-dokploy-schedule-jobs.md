@@ -12,6 +12,8 @@ The repo ships a `Dockerfile` and `docker/run-pipeline.sh`. Dokploy builds it as
 
 A fresh clone per run means pipeline code is always current `main`, so code changes need no redeploy. Only changes to the `Dockerfile` or `run-pipeline.sh` require one.
 
+The `update` job chains the pricing pipeline in the same run whenever the catalog changed, so models added by a rebuild get rates immediately. Weekly jobs cover what the hash gate cannot see: `force` re-extracts specs (Mondays 05:00 UTC) and `pricing` refreshes rates (Mondays 06:00 UTC).
+
 ## Consequences
 
 Scheduling, per-run logs, and container lifecycle come from Dokploy; there is no runner and no external crontab. Failed runs are visible in the Dokploy schedule logs, but unlike Actions there is no notification by default. The PAT expires and must be rotated before it does. Publishing now depends on the VPS being up, which is the same machine that hosted the runner. `ci.yml` keeps validating every artifact push on ubuntu-latest, so the publishing path still runs the test suite per commit.

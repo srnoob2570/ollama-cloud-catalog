@@ -21,13 +21,16 @@ canonical zod definitions in `src/catalog/schema.ts` (`bun run gen-schemas`).
 A small container built from this repo (`Dockerfile`, `docker/run-pipeline.sh`)
 stays alive on Dokploy and runs the pipelines as Schedule Jobs. Each job
 clones `main` fresh, runs the pipeline, and commits only if the artifacts
-changed. Details in `docs/adr/0005-dokploy-schedule-jobs.md`.
+changed. A rebuild that adds models chains `pricing` in the same run, so new
+models get rates without waiting for Monday; the weekly `force` job covers
+capability changes that do not move the model-list hash. Details in
+`docs/adr/0005-dokploy-schedule-jobs.md`.
 
 | Job | Schedule (UTC) | What it does |
 |---|---|---|
-| `run-pipeline update` | every 10 minutes | Hash-gates on `/v1/models`; scrapes specs only on change (or weekly staleness) |
+| `run-pipeline update` | every 10 minutes | Hash-gates on `/v1/models`; scrapes specs only on change (or weekly staleness), then chains `pricing` when it published a new catalog |
 | `run-pipeline pricing` | Mondays 06:00 | Scrapes the rate card with `glm-5.3-flash` structured outputs |
-| `run-pipeline force` | manual | `--force` spec re-extraction when Ollama quietly upgrades a model |
+| `run-pipeline force` | Mondays 05:00 | `--force` spec re-extraction when Ollama quietly upgrades a model |
 | `run-pipeline check` | manual | Read-only diagnostic: is the catalog current? |
 
 The container needs `GITHUB_TOKEN` to push and `OLLAMA_API_KEY` for the

@@ -1,7 +1,7 @@
 # ollama-cloud-catalog
 
-A models.dev-shaped model catalog for Ollama Cloud, maintained by GitHub
-Actions. Two artifacts at the repo root:
+A models.dev-shaped model catalog for Ollama Cloud, refreshed by schedule
+jobs on a Dokploy container. Two artifacts at the repo root:
 
 - **`catalog.json`** is one provider document (`provider.models` keyed by
   model id) with the fields the [models.dev](https://models.dev) standard
@@ -18,11 +18,20 @@ canonical zod definitions in `src/catalog/schema.ts` (`bun run gen-schemas`).
 
 ## How it runs
 
-| Workflow | Trigger | What it does |
+A small container built from this repo (`Dockerfile`, `docker/run-pipeline.sh`)
+stays alive on Dokploy and runs the pipelines as Schedule Jobs. Each job
+clones `main` fresh, runs the pipeline, and commits only if the artifacts
+changed. Details in `docs/adr/0005-dokploy-schedule-jobs.md`.
+
+| Job | Schedule (UTC) | What it does |
 |---|---|---|
-| `update-catalog` | manual / 10-min cron via API | Hash-gates on `/v1/models`; scrapes specs only on change (or weekly staleness) |
-| `update-pricing` | Mondays 06:00 UTC / manual | Scrapes the rate card with `glm-5.3-flash` structured outputs |
-| `update-capabilities` | manual only | `--force` spec re-extraction when Ollama quietly upgrades a model |
+| `run-pipeline update` | every 10 minutes | Hash-gates on `/v1/models`; scrapes specs only on change (or weekly staleness) |
+| `run-pipeline pricing` | Mondays 06:00 | Scrapes the rate card with `glm-5.3-flash` structured outputs |
+| `run-pipeline force` | manual | `--force` spec re-extraction when Ollama quietly upgrades a model |
+| `run-pipeline check` | manual | Read-only diagnostic: is the catalog current? |
+
+The container needs `GITHUB_TOKEN` to push and `OLLAMA_API_KEY` for the
+pipelines; `check` works without the API key.
 
 Sources, in order of trust:
 

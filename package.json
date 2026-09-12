@@ -1,7 +1,7 @@
 {
   "name": "@srnoob2570/ollama-cloud-catalog",
   "version": "0.1.0",
-  "description": "Ollama Cloud model catalog (models.dev-shaped), scraped from ollama.com by GitHub Actions",
+  "description": "Ollama Cloud model catalog (models.dev-shaped), scraped from ollama.com by a Dokploy-scheduled container",
   "type": "module",
   "license": "MIT",
   "repository": {

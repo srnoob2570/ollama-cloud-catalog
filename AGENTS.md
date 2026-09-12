@@ -12,6 +12,7 @@ OLLAMA_API_KEY=... bun run update            # hash-gated spec rebuild (hits liv
 OLLAMA_API_KEY=... bun run update-pricing    # rate-card refresh (hits live page + LLM)
 bun run gen-schemas                # after editing src/catalog/schema.ts
 bun test tests/pipeline.test.ts -t "name"    # single test
+docker build -t ollama-cloud-catalog .       # image run by Dokploy; verify docker/run-pipeline.sh changes
 ```
 
 Most local work runs offline: `bun test` uses fixtures only and needs no key. Anything that touches `update` / `update-pricing` hits live endpoints and fails 401 without `OLLAMA_API_KEY`.
@@ -25,8 +26,8 @@ Most local work runs offline: `bun test` uses fixtures only and needs no key. An
 - **Schema changes require codegen.** `src/catalog/schema.ts` is the single source of truth; `schemas/*.json` are generated. Hand-editing them is always wrong.
 - **Merge-back reads previous artifacts.** Cost fields survive catalog rebuilds; specs survive pricing updates. The published `catalog.json`/`pricing.json` at repo root are pipeline inputs, so regenerate them via the pipelines rather than tweaking by hand.
 - **Fixtures are live captures** (2026-09-05) in `tests/fixtures.ts`. Update them by hand only when Ollama changes response shapes.
-- **Cron lives outside the repo.** The `schedule` triggers in the workflow YAMLs are commented out because runs fire from a self-hosted runner's crontab via `workflow_dispatch`. Do not re-enable them.
-- Workflows are the only thing that commits artifacts (`chore: refresh ...`). Do not edit `catalog.json`/`pricing.json` manually.
+- **Publishing runs on Dokploy, not GitHub Actions.** `Dockerfile` + `docker/run-pipeline.sh` deploy as a Dokploy Application whose `CMD` is `sleep infinity`; Schedule Jobs exec `run-pipeline update` every 10 minutes and `run-pipeline pricing` Mondays 06:00 UTC. The script clones `main` fresh and owns the commits (`chore: refresh ...`). Do not edit `catalog.json`/`pricing.json` manually. The old update workflows still exist during cutover and are deleted after one verified cycle.
+- **The container must stay running.** Schedule Jobs execute inside the application container, so the `sleep infinity` CMD is load-bearing: without it the container exits and every job fails. Keep replicas at 1 or the exec target is ambiguous.
 
 ## Repository Map
 

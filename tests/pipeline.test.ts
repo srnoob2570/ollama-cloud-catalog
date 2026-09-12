@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { z } from "zod";
 import { extractPricingSection, extractPricingTables } from "../src/sources/pricing-page.ts";
-import { reasoningOptionsOf, seedReasoningOptions } from "../src/sources/models-dev.ts";
+import { reasoningOptionsOf, seedEntry, seedEntryOf, type SeedEntry } from "../src/sources/models-dev.ts";
 import { fetchAllSpecs, fetchModelSpec } from "../src/sources/show.ts";
 import { fetchModelsList } from "../src/sources/models-api.ts";
 import { modelsHash, stableStringify } from "../src/lib/artifacts.ts";
@@ -21,6 +21,7 @@ import {
     applyCosts,
     refreshDecision,
     modelsWithoutCost,
+    type ModelMeta,
 } from "../src/catalog/assemble.ts";
 import { buildRatePrompt, extractRates } from "../src/catalog/extract-rates.ts";
 import { extractJson } from "../src/extract/ai.ts";
@@ -118,9 +119,9 @@ describe("peak_rate extraction contract", () => {
 });
 
 describe("models.dev reasoning seed", () => {
-    const seed = new Map([
-        ["glm-5.3", ["low", "high", "max"]],
-        ["deepseek-v4-flash", ["high", "max"]],
+    const seed = new Map<string, SeedEntry>([
+        ["glm-5.3", { reasoning_options: ["low", "high", "max"] }],
+        ["deepseek-v4-flash", { reasoning_options: ["high", "max"] }],
     ]);
 
     test("effort entries only; non-effort and non-string values dropped", () => {
@@ -140,9 +141,24 @@ describe("models.dev reasoning seed", () => {
     });
 
     test("lookup by exact id, then family, then miss", () => {
-        expect(seedReasoningOptions(seed, "glm-5.3")).toEqual(["low", "high", "max"]);
-        expect(seedReasoningOptions(seed, "deepseek-v4-flash:0731")).toEqual(["high", "max"]);
-        expect(seedReasoningOptions(seed, "who-dis")).toBeUndefined();
+        expect(seedEntry(seed, "glm-5.3")?.reasoning_options).toEqual(["low", "high", "max"]);
+        expect(seedEntry(seed, "deepseek-v4-flash:0731")?.reasoning_options).toEqual(["high", "max"]);
+        expect(seedEntry(seed, "who-dis")).toBeUndefined();
+    });
+
+    test("seedEntryOf normalizes effort tiers, description and temperature", () => {
+        expect(
+            seedEntryOf({
+                reasoning_options: [{ type: "effort", values: ["high"] }],
+                description: "A fast model",
+                temperature: true,
+            }),
+        ).toEqual({ reasoning_options: ["high"], description: "A fast model", temperature: true });
+    });
+
+    test("seedEntryOf omits absent fields instead of setting undefined", () => {
+        expect(seedEntryOf({})).toEqual({});
+        expect(seedEntryOf({ reasoning_options: [{ type: "toggle", values: ["x"] }] })).toEqual({});
     });
 });
 
@@ -408,7 +424,7 @@ describe("models list validation", () => {
     });
 });
 
-describe("reasoning seed fold", () => {
+describe("models.dev seed fold", () => {
     const spec = ModelSchema.parse({
         id: "glm-5.3",
         name: "Glm 5.3",
@@ -419,18 +435,21 @@ describe("reasoning seed fold", () => {
         release_date: "2026-08-27",
         x_ollama: { quantization: "FP8", ollama_family: "glm", parameter_count: 358000000000 },
     });
-    const build = (seed?: Map<string, string[]>, prior?: Map<string, string[]>) =>
+    const build = (seed?: Map<string, SeedEntry>, prior?: Map<string, string[]>, metaPrior?: Map<string, ModelMeta>) =>
         buildCatalogDoc({
             modelsHash: "a".repeat(64),
             specs: [spec],
             costs: new Map(),
-            ...(seed ? { reasoningSeed: seed } : {}),
+            ...(seed ? { modelsDevSeed: seed } : {}),
             ...(prior ? { reasoningPrior: prior } : {}),
+            ...(metaPrior ? { metaPrior } : {}),
         });
     const options = (doc: CatalogDoc) => doc.provider.models["glm-5.3"]?.x_ollama.reasoning_options;
 
     test("seed wins over prior", () => {
-        expect(options(build(new Map([["glm-5.3", ["high"]]]), new Map([["glm-5.3", ["low"]]])))).toEqual(["high"]);
+        expect(
+            options(build(new Map([["glm-5.3", { reasoning_options: ["high"] }]]), new Map([["glm-5.3", ["low"]]]))),
+        ).toEqual(["high"]);
     });
 
     test("no seed → previous artifact's options", () => {
@@ -448,10 +467,12 @@ describe("reasoning seed fold", () => {
             modelsHash: "a".repeat(64),
             specs: [tagged],
             costs: new Map(),
-            reasoningSeed: new Map([["glm-5.3", ["high"]]]),
+            modelsDevSeed: new Map([["glm-5.3", { reasoning_options: ["high"] }]]),
         });
         expect(doc.provider.models["glm-5.3:fp8"]?.x_ollama.reasoning_options).toEqual(["high"]);
-        expect(options(build(new Map([["who", ["high"]]]), new Map([["glm-5.3", ["low"]]])))).toEqual(["low"]);
+        expect(
+            options(build(new Map([["who", { reasoning_options: ["high"] }]]), new Map([["glm-5.3", ["low"]]]))),
+        ).toEqual(["low"]);
     });
 
     test("neither seed nor prior → field omitted, never an empty array", () => {
@@ -468,7 +489,7 @@ describe("reasoning seed fold", () => {
             modelsHash: "a".repeat(64),
             specs: [ds],
             costs: new Map(),
-            reasoningSeed: new Map([["deepseek-v4.1-flash", ["high"]]]),
+            modelsDevSeed: new Map([["deepseek-v4.1-flash", { reasoning_options: ["high"] }]]),
             reasoningPrior: new Map([["deepseek-v4.1-flash", ["low"]]]),
         });
         expect(doc.provider.models["deepseek-v4.1-flash"]?.x_ollama.reasoning_options).toEqual(["low", "high", "max"]);
@@ -490,6 +511,34 @@ describe("reasoning seed fold", () => {
             "high",
             "max",
         ]);
+    });
+
+    test("seed description and temperature land on the model", () => {
+        const doc = build(new Map([["glm-5.3", { description: "A fast model", temperature: true }]]));
+        expect(doc.provider.models["glm-5.3"]?.description).toBe("A fast model");
+        expect(doc.provider.models["glm-5.3"]?.temperature).toBe(true);
+    });
+
+    test("seed wins over the previous artifact's metadata", () => {
+        const doc = build(
+            new Map([["glm-5.3", { description: "seed", temperature: true }]]),
+            undefined,
+            new Map([["glm-5.3", { description: "prior", temperature: false }]]),
+        );
+        expect(doc.provider.models["glm-5.3"]?.description).toBe("seed");
+        expect(doc.provider.models["glm-5.3"]?.temperature).toBe(true);
+    });
+
+    test("seed miss falls back to the previous artifact's metadata", () => {
+        const doc = build(undefined, undefined, new Map([["glm-5.3", { description: "prior", temperature: false }]]));
+        expect(doc.provider.models["glm-5.3"]?.description).toBe("prior");
+        expect(doc.provider.models["glm-5.3"]?.temperature).toBe(false);
+    });
+
+    test("neither seed nor prior → metadata omitted, never guessed", () => {
+        const model = build().provider.models["glm-5.3"];
+        expect(model?.description).toBeUndefined();
+        expect(model?.temperature).toBeUndefined();
     });
 });
 

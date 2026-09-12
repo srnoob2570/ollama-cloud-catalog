@@ -4,13 +4,14 @@
 //           past a week, or --force), preserving cost from the old artifact
 import { fetchModelsList } from "./sources/models-api.ts";
 import { fetchAllSpecs } from "./sources/show.ts";
-import { fetchReasoningSeed } from "./sources/models-dev.ts";
+import { fetchModelsDevSeed } from "./sources/models-dev.ts";
 import {
     buildCatalogDoc,
     CATALOG_PATH,
     loadCatalog,
     modelsWithoutCost,
     previousCosts,
+    previousModelMeta,
     previousPeakCosts,
     previousReasoningOptions,
     previousSpecs,
@@ -50,7 +51,7 @@ console.log(
             : "model list changed; rebuilding",
 );
 
-const reasoningSeed = await fetchReasoningSeed();
+const modelsDevSeed = await fetchModelsDevSeed();
 
 const specs = await fetchAllSpecs(
     live.map((m) => m.id),
@@ -61,8 +62,9 @@ const doc = buildCatalogDoc({
     specs,
     costs: previousCosts(previous),
     peakCosts: previousPeakCosts(previous),
-    ...(reasoningSeed ? { reasoningSeed } : {}),
+    ...(modelsDevSeed ? { modelsDevSeed } : {}),
     reasoningPrior: previousReasoningOptions(previous),
+    metaPrior: previousModelMeta(previous),
 });
 await publishCatalog(doc);
 

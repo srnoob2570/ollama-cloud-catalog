@@ -15,7 +15,7 @@ Two CLI entry points that publish the repo's artifacts (`catalog.json`, `pricing
 1. Load published catalog, fetch `GET https://ollama.com/v1/models`, compute `modelsHash`.
 2. `check`: print `catalog is up to date` / `catalog is outdated`; exit 0 when `x_ollama.models_hash` matches the live hash, else 1.
 3. `update`: `decideRebuild` decides. `skip` prints "nothing to do" and exits 0; otherwise the script logs the reason (`force` | `stale` | `no-previous` | `changed`) and proceeds.
-4. Rebuild: `fetchReasoningSeed` (models.dev), `fetchAllSpecs` (`POST /api/show` per id + output-limit probe via `/api/chat`), `buildCatalogDoc` merges previous costs/peak costs/reasoning options, `publishCatalog`.
+4. Rebuild: `fetchModelsDevSeed` (models.dev: effort tiers, description, temperature), `fetchAllSpecs` (`POST /api/show` per id + output-limit probe via `/api/chat`), `buildCatalogDoc` merges previous costs/peak costs/reasoning options/model metadata, `publishCatalog`.
 5. Warns on models without cost, prompting `update-pricing`.
 
 `update-pricing.ts` takes no flags:

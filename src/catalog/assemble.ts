@@ -10,7 +10,7 @@ import {
     type Model,
     type PricingDoc,
 } from "./schema.ts";
-import { seedReasoningOptions } from "../sources/models-dev.ts";
+import { seedEntry, type SeedEntry } from "../sources/models-dev.ts";
 import { REASONING_OVERRIDES } from "../sources/reasoning-overrides.ts";
 import { familyOf } from "../lib/ids.ts";
 import { stableStringify, writeAtomic } from "../lib/artifacts.ts";
@@ -25,15 +25,23 @@ export type CatalogSources = {
     specs: Model[]; // one per listed id, in any order
     costs: Map<string, Cost>; // from previous artifacts, keyed by model id
     peakCosts?: Map<string, Cost>; // models the rate card peak-prices
-    reasoningSeed?: Map<string, string[]>; // models.dev effort tiers, build-time only
+    modelsDevSeed?: Map<string, SeedEntry>; // metadata no Ollama endpoint exposes, build-time only
     reasoningPrior?: Map<string, string[]>; // previous artifact's reasoning_options
+    metaPrior?: Map<string, ModelMeta>; // previous artifact's description and temperature
 };
+
+// Description and temperature have no Ollama endpoint either: the seed is
+// the source and the previous artifact the fallback, so a seed outage
+// cannot silently drop fields the catalog already published.
+export type ModelMeta = { description?: string; temperature?: boolean };
 
 export function buildCatalogDoc(sources: CatalogSources): CatalogDoc {
     const models = Object.fromEntries(
         sources.specs.map((spec) => {
             const cost = sources.costs.get(spec.id);
             const peakCost = sources.peakCosts?.get(spec.id);
+            const entry = sources.modelsDevSeed ? seedEntry(sources.modelsDevSeed, spec.id) : undefined;
+            const meta = sources.metaPrior?.get(spec.id);
             // Effort tiers: a local override wins (deliberate correction citing
             // vendor docs, applied to tagged variants through the family lookup),
             // then the models.dev seed (build-time only), then the previous
@@ -41,13 +49,17 @@ export function buildCatalogDoc(sources: CatalogSources): CatalogDoc {
             const reasoningOptions =
                 REASONING_OVERRIDES.get(spec.id) ??
                 REASONING_OVERRIDES.get(familyOf(spec.id)) ??
-                (sources.reasoningSeed ? seedReasoningOptions(sources.reasoningSeed, spec.id) : undefined) ??
+                entry?.reasoning_options ??
                 sources.reasoningPrior?.get(spec.id);
+            const description = entry?.description ?? meta?.description;
+            const temperature = entry?.temperature ?? meta?.temperature;
             return [
                 spec.id,
                 {
                     ...spec,
                     ...(cost ? { cost } : {}),
+                    ...(description ? { description } : {}),
+                    ...(temperature !== undefined ? { temperature } : {}),
                     x_ollama: {
                         ...spec.x_ollama,
                         ...(peakCost ? { peak_cost: peakCost } : {}),
@@ -218,4 +230,16 @@ export function previousReasoningOptions(catalog: CatalogDoc | undefined): Map<s
     for (const [id, model] of Object.entries(catalog?.provider.models ?? {}))
         if (model.x_ollama.reasoning_options) options.set(id, model.x_ollama.reasoning_options);
     return options;
+}
+
+export function previousModelMeta(catalog: CatalogDoc | undefined): Map<string, ModelMeta> {
+    const meta = new Map<string, ModelMeta>();
+    for (const [id, model] of Object.entries(catalog?.provider.models ?? {})) {
+        const entry: ModelMeta = {
+            ...(model.description ? { description: model.description } : {}),
+            ...(model.temperature !== undefined ? { temperature: model.temperature } : {}),
+        };
+        if (Object.keys(entry).length > 0) meta.set(id, entry);
+    }
+    return meta;
 }

@@ -7,7 +7,7 @@ import { fetchModelsList } from "../src/sources/models-api.ts";
 import { modelsHash, stableStringify } from "../src/lib/artifacts.ts";
 import { displayName } from "../src/lib/ids.ts";
 import { resolveRateId, resolveRates } from "../src/catalog/resolve-rates.ts";
-import { decideRebuild } from "../src/catalog/gate.ts";
+import { checkOutcome, decideRebuild } from "../src/catalog/gate.ts";
 import {
     CatalogDocSchema,
     ModelSchema,
@@ -407,6 +407,22 @@ describe("rebuild gate", () => {
         expect(decideRebuild(prev("h", new Date(t0 - 1).toISOString()), "h", t0, false)).toEqual({
             action: "skip",
         });
+    });
+});
+
+describe("check mode", () => {
+    const prev = (modelsHash: string) => ({ x_ollama: { models_hash: modelsHash } });
+
+    test("matching hash exits 0", () => {
+        expect(checkOutcome(prev("h"), "h")).toEqual({ message: "catalog is up to date", exitCode: 0 });
+    });
+
+    test("different hash exits 1", () => {
+        expect(checkOutcome(prev("old"), "new")).toEqual({ message: "catalog is outdated", exitCode: 1 });
+    });
+
+    test("missing previous artifact exits 1", () => {
+        expect(checkOutcome(undefined, "new")).toEqual({ message: "catalog is outdated", exitCode: 1 });
     });
 });
 

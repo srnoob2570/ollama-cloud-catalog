@@ -24,3 +24,20 @@ export function decideRebuild(
         return { action: "rebuild", reason: "stale" };
     return { action: "skip" };
 }
+
+export type CheckOutcome = { message: string; exitCode: 0 | 1 };
+
+// Check mode answers one question with exit codes only (ADR 0002): is the
+// published models_hash the live one? The mapping lives here so a test can
+// hold it without spawning the CLI, and so the message and the codes cannot
+// drift apart.
+export function checkOutcome(
+    previous: { x_ollama: { models_hash: string } } | undefined,
+    liveHash: string,
+): CheckOutcome {
+    const upToDate = previous?.x_ollama.models_hash === liveHash;
+    return {
+        message: upToDate ? "catalog is up to date" : "catalog is outdated",
+        exitCode: upToDate ? 0 : 1,
+    };
+}

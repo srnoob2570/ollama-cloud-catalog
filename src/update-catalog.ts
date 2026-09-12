@@ -17,7 +17,7 @@ import {
     previousSpecs,
     publishCatalog,
 } from "./catalog/assemble.ts";
-import { decideRebuild } from "./catalog/gate.ts";
+import { checkOutcome, decideRebuild } from "./catalog/gate.ts";
 import { modelsHash } from "./lib/artifacts.ts";
 
 const force = process.argv.includes("--force");
@@ -32,8 +32,9 @@ const live = await fetchModelsList("https://ollama.com/v1");
 const liveHash = modelsHash(live);
 
 if (mode === "check") {
-    console.log(previous?.x_ollama.models_hash === liveHash ? "catalog is up to date" : "catalog is outdated");
-    process.exit(previous?.x_ollama.models_hash === liveHash ? 0 : 1);
+    const outcome = checkOutcome(previous, liveHash);
+    console.log(outcome.message);
+    process.exit(outcome.exitCode);
 }
 
 const decision = decideRebuild(previous, liveHash, Date.now(), force);

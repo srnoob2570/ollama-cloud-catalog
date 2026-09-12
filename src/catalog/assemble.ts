@@ -11,8 +11,7 @@ import {
     type PricingDoc,
 } from "./schema.ts";
 import { seedEntry, type SeedEntry } from "../sources/models-dev.ts";
-import { REASONING_OVERRIDES } from "../sources/reasoning-overrides.ts";
-import { familyOf } from "../lib/ids.ts";
+import { REASONING_OPTIONS } from "../sources/reasoning-overrides.ts";
 import { stableStringify, writeAtomic } from "../lib/artifacts.ts";
 
 export const CATALOG_PATH = "catalog.json";
@@ -26,7 +25,6 @@ export type CatalogSources = {
     costs: Map<string, Cost>; // from previous artifacts, keyed by model id
     peakCosts?: Map<string, Cost>; // models the rate card peak-prices
     modelsDevSeed?: Map<string, SeedEntry>; // metadata no Ollama endpoint exposes, build-time only
-    reasoningPrior?: Map<string, string[]>; // previous artifact's reasoning_options
     metaPrior?: Map<string, ModelMeta>; // previous artifact's description and temperature
 };
 
@@ -42,15 +40,9 @@ export function buildCatalogDoc(sources: CatalogSources): CatalogDoc {
             const peakCost = sources.peakCosts?.get(spec.id);
             const entry = sources.modelsDevSeed ? seedEntry(sources.modelsDevSeed, spec.id) : undefined;
             const meta = sources.metaPrior?.get(spec.id);
-            // Effort tiers: a local override wins (deliberate correction citing
-            // vendor docs, applied to tagged variants through the family lookup),
-            // then the models.dev seed (build-time only), then the previous
-            // artifact; absent everywhere → the field is omitted, never guessed.
-            const reasoningOptions =
-                REASONING_OVERRIDES.get(spec.id) ??
-                REASONING_OVERRIDES.get(familyOf(spec.id)) ??
-                entry?.reasoning_options ??
-                sources.reasoningPrior?.get(spec.id);
+            // Effort tiers: the same four tiers for every cataloged model,
+            // confirmed against the live API (see reasoning-overrides.ts).
+            const reasoningOptions = [...REASONING_OPTIONS];
             const description = entry?.description ?? meta?.description;
             const temperature = entry?.temperature ?? meta?.temperature;
             return [
@@ -223,13 +215,6 @@ export function previousPeakCosts(catalog: CatalogDoc | undefined): Map<string, 
     for (const [id, model] of Object.entries(catalog?.provider.models ?? {}))
         if (model.x_ollama.peak_cost) costs.set(id, model.x_ollama.peak_cost);
     return costs;
-}
-
-export function previousReasoningOptions(catalog: CatalogDoc | undefined): Map<string, string[]> {
-    const options = new Map<string, string[]>();
-    for (const [id, model] of Object.entries(catalog?.provider.models ?? {}))
-        if (model.x_ollama.reasoning_options) options.set(id, model.x_ollama.reasoning_options);
-    return options;
 }
 
 export function previousModelMeta(catalog: CatalogDoc | undefined): Map<string, ModelMeta> {

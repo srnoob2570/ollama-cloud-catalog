@@ -13,7 +13,6 @@ import {
     previousCosts,
     previousModelMeta,
     previousPeakCosts,
-    previousReasoningOptions,
     previousSpecs,
     publishCatalog,
 } from "./catalog/assemble.ts";
@@ -64,7 +63,6 @@ const doc = buildCatalogDoc({
     costs: previousCosts(previous),
     peakCosts: previousPeakCosts(previous),
     ...(modelsDevSeed ? { modelsDevSeed } : {}),
-    reasoningPrior: previousReasoningOptions(previous),
     metaPrior: previousModelMeta(previous),
 });
 await publishCatalog(doc);

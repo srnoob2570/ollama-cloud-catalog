@@ -26,7 +26,7 @@ This repo publishes two artifacts for jsDelivr consumers: `catalog.json` (models
 
 **Atomic publish.** Artifacts are written to a temp file and renamed. Readers never see a partial file.
 
-**models.dev seed.** Some published metadata has no Ollama endpoint: the reasoning-effort tiers a model accepts, the model description, and whether it accepts a temperature come from models.dev, build-time only. The seed wins over the previous artifact for each field independently; absence in both means the field is omitted, never guessed.
+**models.dev seed.** Some published metadata has no Ollama endpoint: the model description and whether it accepts a temperature come from models.dev, build-time only. The seed wins over the previous artifact for each field independently; absence in both means the field is omitted, never guessed. Reasoning-effort tiers are not seed data: the four tiers every cataloged model accepts (`low`, `medium`, `high`, `max`) are a confirmed universal mapping (see `src/sources/reasoning-overrides.ts`).
 
 ## Where things live
 

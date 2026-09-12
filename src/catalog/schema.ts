@@ -47,9 +47,8 @@ export const OllamaMetaSchema = z.object({
         .optional(),
     // Reasoning-effort tiers the model accepts (ollama.com/v1 maps
     // reasoning_effort onto its native think level). Not exposed by any Ollama
-    // endpoint. Sources are local vendor-docs overrides and models.dev's
-    // per-model entry, both read as a build-time seed; absent when neither
-    // override, seed nor previous artifact has it.
+    // endpoint; confirmed live on 2026-09-12 as the same four tiers for every
+    // cataloged model (see src/sources/reasoning-overrides.ts).
     reasoning_options: z.array(z.string()).optional(),
 });
 

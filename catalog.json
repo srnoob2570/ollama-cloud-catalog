@@ -57,7 +57,7 @@
           "input": 0.66,
           "output": 1.98
         },
-        "description": "Flagship DeepSeek model for coding, reasoning, and agentic work",
+        "description": "DeepSeek V4 Pro snapshot with million-token context and support for thinking and non-thinking modes",
         "id": "deepseek-v4-pro:0813",
         "limit": {
           "context": 1048576,
@@ -74,6 +74,7 @@
         "name": "Deepseek V4 Pro 0813",
         "reasoning": true,
         "release_date": "2026-08-13",
+        "temperature": true,
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "deepseek4",
@@ -783,7 +784,7 @@
     "npm": "@ai-sdk/openai-compatible"
   },
   "x_ollama": {
-    "generated_at": "2026-09-12T23:48:15.181Z",
+    "generated_at": "2026-09-13T05:36:29.326Z",
     "models_hash": "7ad9a72aa29ea9a35e4ca7a1a9d388c936f778fa916ab8a18c66c4cbf1b37dd2",
     "sources": {
       "models": "https://ollama.com/v1/models",

@@ -63,8 +63,8 @@ publish() {
         return 0
     fi
     git add catalog.json pricing.json
-    git -c user.name="ollama-cloud-catalog-bot" \
-        -c user.email="bot@users.noreply.github.com" \
+    git -c user.name="srnoob2570" \
+        -c user.email="302417634+srnoob2570@users.noreply.github.com" \
         commit -m "$message"
     git push origin HEAD:main
     echo "==> published: $message"

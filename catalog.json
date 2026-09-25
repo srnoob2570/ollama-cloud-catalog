@@ -7,49 +7,6 @@
     ],
     "id": "ollama-cloud",
     "models": {
-      "deepseek-v4-flash:0731": {
-        "attachment": false,
-        "cost": {
-          "cache_read": 0.007,
-          "input": 0.22,
-          "output": 0.66
-        },
-        "description": "Official DeepSeek V4 Flash release with enhanced agentic capabilities and integrated DSpark speculative decoding",
-        "id": "deepseek-v4-flash:0731",
-        "limit": {
-          "context": 1048576,
-          "output": 65536
-        },
-        "modalities": {
-          "input": [
-            "text"
-          ],
-          "output": [
-            "text"
-          ]
-        },
-        "name": "Deepseek V4 Flash 0731",
-        "reasoning": true,
-        "release_date": "2026-07-31",
-        "temperature": true,
-        "tool_call": true,
-        "x_ollama": {
-          "ollama_family": "deepseek4",
-          "parameter_count": 304180418494,
-          "peak_cost": {
-            "cache_read": 0.014,
-            "input": 0.44,
-            "output": 1.32
-          },
-          "quantization": "FP8",
-          "reasoning_options": [
-            "low",
-            "medium",
-            "high",
-            "max"
-          ]
-        }
-      },
       "deepseek-v4-pro:0813": {
         "attachment": false,
         "cost": {
@@ -167,43 +124,6 @@
           "ollama_family": "gemma4",
           "parameter_count": 32682372656,
           "quantization": "BF16",
-          "reasoning_options": [
-            "low",
-            "medium",
-            "high",
-            "max"
-          ]
-        }
-      },
-      "glm-5.1": {
-        "attachment": false,
-        "cost": {
-          "cache_read": 0.2,
-          "input": 1,
-          "output": 3.2
-        },
-        "description": "Flagship GLM model for hybrid reasoning, coding, and agentic engineering",
-        "id": "glm-5.1",
-        "limit": {
-          "context": 202752,
-          "output": 131072
-        },
-        "modalities": {
-          "input": [
-            "text"
-          ],
-          "output": [
-            "text"
-          ]
-        },
-        "name": "GLM 5.1",
-        "reasoning": true,
-        "release_date": "2026-04-07",
-        "tool_call": true,
-        "x_ollama": {
-          "ollama_family": "glm5.1",
-          "parameter_count": 756162687872,
-          "quantization": "FP8",
           "reasoning_options": [
             "low",
             "medium",
@@ -741,51 +661,14 @@
             "max"
           ]
         }
-      },
-      "qwen3.5:397b": {
-        "attachment": true,
-        "cost": {
-          "input": 0.6,
-          "output": 3.6
-        },
-        "description": "Qwen vision-language model for visual reasoning, documents, and agent tasks",
-        "id": "qwen3.5:397b",
-        "limit": {
-          "context": 262144,
-          "output": 65536
-        },
-        "modalities": {
-          "input": [
-            "text",
-            "image"
-          ],
-          "output": [
-            "text"
-          ]
-        },
-        "name": "Qwen3.5 397B",
-        "reasoning": true,
-        "release_date": "2026-02-16",
-        "tool_call": true,
-        "x_ollama": {
-          "ollama_family": "qwen3.5",
-          "parameter_count": 397000000000,
-          "quantization": "BF16",
-          "reasoning_options": [
-            "low",
-            "medium",
-            "high",
-            "max"
-          ]
-        }
       }
     },
     "name": "Ollama Cloud",
     "npm": "@ai-sdk/openai-compatible"
   },
   "x_ollama": {
-    "generated_at": "2026-09-21T05:00:10.721Z",
-    "models_hash": "7ad9a72aa29ea9a35e4ca7a1a9d388c936f778fa916ab8a18c66c4cbf1b37dd2",
+    "generated_at": "2026-09-25T07:00:02.831Z",
+    "models_hash": "bcc3b3379fc952268ac9873f0dd60aa1ce3af941b9ff4b06784250e439072531",
     "sources": {
       "models": "https://ollama.com/v1/models",
       "show": "https://ollama.com/api/show"

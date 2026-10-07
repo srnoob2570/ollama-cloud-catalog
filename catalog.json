@@ -549,6 +549,38 @@
           ]
         }
       },
+      "mistral-large-4": {
+        "attachment": true,
+        "id": "mistral-large-4",
+        "limit": {
+          "context": 1048576,
+          "output": 262144
+        },
+        "modalities": {
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "Mistral Large 4",
+        "reasoning": true,
+        "release_date": "2026-10-06",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "mistral4",
+          "parameter_count": 1050000000000,
+          "quantization": "unknown",
+          "reasoning_options": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
+        }
+      },
       "nemotron-3-nano:30b": {
         "attachment": false,
         "cost": {
@@ -667,8 +699,8 @@
     "npm": "@ai-sdk/openai-compatible"
   },
   "x_ollama": {
-    "generated_at": "2026-10-05T05:00:02.832Z",
-    "models_hash": "bcc3b3379fc952268ac9873f0dd60aa1ce3af941b9ff4b06784250e439072531",
+    "generated_at": "2026-10-07T00:30:03.013Z",
+    "models_hash": "8639e57bff70e78d9b34581d8f88ba05481217ce895fd81aaf393f6772106b10",
     "sources": {
       "models": "https://ollama.com/v1/models",
       "show": "https://ollama.com/api/show"

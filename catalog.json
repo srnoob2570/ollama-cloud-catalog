@@ -583,6 +583,38 @@
           ]
         }
       },
+      "muse-spark-open": {
+        "attachment": true,
+        "id": "muse-spark-open",
+        "limit": {
+          "context": 1048576,
+          "output": 262144
+        },
+        "modalities": {
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "Muse Spark Open",
+        "reasoning": true,
+        "release_date": "2026-10-15",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "muse-spark",
+          "parameter_count": 822000000000,
+          "quantization": "FP8",
+          "reasoning_options": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
+        }
+      },
       "nemotron-3-nano:30b": {
         "attachment": false,
         "cost": {
@@ -701,8 +733,8 @@
     "npm": "@ai-sdk/openai-compatible"
   },
   "x_ollama": {
-    "generated_at": "2026-10-12T05:00:02.723Z",
-    "models_hash": "8639e57bff70e78d9b34581d8f88ba05481217ce895fd81aaf393f6772106b10",
+    "generated_at": "2026-10-15T20:20:02.654Z",
+    "models_hash": "974c7c8c29a6a8b6fb6dae9e7abf1c3dea3e851fb980f5660453949f6de8f065",
     "sources": {
       "models": "https://ollama.com/v1/models",
       "show": "https://ollama.com/api/show"

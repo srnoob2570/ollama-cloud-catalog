@@ -7,6 +7,68 @@
     ],
     "id": "ollama-cloud",
     "models": {
+      "beam": {
+        "attachment": false,
+        "id": "beam",
+        "limit": {
+          "context": 1048576,
+          "output": 131072
+        },
+        "modalities": {
+          "input": [
+            "text"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "Beam",
+        "reasoning": true,
+        "release_date": "2026-10-16",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "beam",
+          "parameter_count": 501000000000,
+          "quantization": "unknown",
+          "reasoning_options": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
+        }
+      },
+      "clef:27b": {
+        "attachment": true,
+        "id": "clef:27b",
+        "limit": {
+          "context": 65536
+        },
+        "modalities": {
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "Clef 27B",
+        "reasoning": false,
+        "release_date": "2026-10-04",
+        "tool_call": false,
+        "x_ollama": {
+          "ollama_family": "qwen35",
+          "parameter_count": 27356728560,
+          "quantization": "BF16",
+          "reasoning_options": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
+        }
+      },
       "deepseek-v4-pro:0813": {
         "attachment": false,
         "cost": {
@@ -585,10 +647,11 @@
       },
       "muse-spark-open": {
         "attachment": true,
+        "description": "Muse Spark Open is an 816B total / 42B active open-weight multimodal reasoning model from Meta for coding and long-horizon agentic work, with 1M-token context.",
         "id": "muse-spark-open",
         "limit": {
           "context": 1048576,
-          "output": 262144
+          "output": 1048576
         },
         "modalities": {
           "input": [
@@ -602,6 +665,7 @@
         "name": "Muse Spark Open",
         "reasoning": true,
         "release_date": "2026-10-15",
+        "temperature": true,
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "muse-spark",
@@ -733,8 +797,8 @@
     "npm": "@ai-sdk/openai-compatible"
   },
   "x_ollama": {
-    "generated_at": "2026-10-15T20:20:02.654Z",
-    "models_hash": "974c7c8c29a6a8b6fb6dae9e7abf1c3dea3e851fb980f5660453949f6de8f065",
+    "generated_at": "2026-10-16T23:32:27.041Z",
+    "models_hash": "104291a33187365982f200fe53a35827b284fbf3dd83b6f59467092f068f9d37",
     "sources": {
       "models": "https://ollama.com/v1/models",
       "show": "https://ollama.com/api/show"

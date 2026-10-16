@@ -17,6 +17,26 @@ export const PROBE_GLM53_ERROR = {
     error: "max_tokens (999999999999999999) exceeds model's maximum output tokens (1048576) for model glm-5.3 (ref: 7b387ec0-dcd8-43ca-972d-c177b1214d65)",
 };
 
+// Captured from live sources (2026-10-16): clef:27b is a "decision" model —
+// /api/show serves it (trimmed; capabilities carry a new "decision" marker
+// and no tools/thinking), but /api/chat refuses it outright.
+export const SHOW_CLEF27B = {
+    capabilities: ["decision", "vision"],
+    details: { family: "qwen35", quantization_level: "BF16" },
+    model_info: {
+        "qwen35.context_length": 65536,
+        "general.parameter_count": 27356728560,
+    },
+    modified_at: "2026-10-04T09:00:00-07:00",
+};
+
+// The refusal, verbatim from the 2026-10-16 pipeline log: a decision model
+// only serves /v1/systemone, so the oversized-num_predict probe never
+// reaches output-cap validation. No cap exists to extract.
+export const PROBE_CLEF27B_ERROR = {
+    error: "clef:27b is a decision model and only supports /v1/systemone (ref: ce4860f6-c496-4114-8444-771391aeeef2)",
+};
+
 // Minimal but realistic pricing section: ids come from /library/ links.
 export const PRICING_SECTION = `<section id="model-pricing">
   <h2>Model pricing</h2>

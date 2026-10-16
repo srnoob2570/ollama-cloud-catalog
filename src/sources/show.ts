@@ -24,10 +24,15 @@ export const SHOW_URL = "https://ollama.com/api/show";
 // The request is rejected before any generation, so the probe costs no
 // tokens. Verified live 2026-09-05 across the fleet (limits range from 65536
 // to 1048576, so a hardcoded default would have been wrong for most models).
+// Models the chat endpoint refuses to serve at all (decision models, first
+// seen 2026-10-16: "clef:27b is a decision model and only supports
+// /v1/systemone") never reach cap validation — for them there is no cap to
+// probe, limit.output is omitted and the run warns. Absence, never a guess.
 const PROBE_NUM_PREDICT = 999_999_999_999_999_999;
 const MAX_OUTPUT_RE = /model's maximum output tokens \((\d+)\)/;
+const UNSUPPORTED_CHAT_RE = /only supports (\S+)/;
 
-export async function probeMaxOutput(id: string, impl: FetchImpl = fetch): Promise<number> {
+export async function probeMaxOutput(id: string, impl: FetchImpl = fetch): Promise<number | undefined> {
     const headers: Record<string, string> = { "content-type": "application/json" };
     const auth = ollamaAuthHeader();
     if (auth) headers.authorization = auth;
@@ -56,7 +61,14 @@ export async function probeMaxOutput(id: string, impl: FetchImpl = fetch): Promi
     if (ok) throw new Error(`output-limit probe for ${id} unexpectedly succeeded`);
     if (status === 401) throw new AuthError(`output-limit probe for ${id} needs OLLAMA_API_KEY (HTTP 401)`);
     const match = MAX_OUTPUT_RE.exec(error);
-    if (!match) throw new Error(`output-limit probe for ${id}: unrecognized error: ${error.slice(0, 200)}`);
+    if (!match) {
+        const unsupported = UNSUPPORTED_CHAT_RE.exec(error);
+        if (unsupported) {
+            console.warn(`! output limit unknown for ${id}: served only by ${unsupported[1]}, not /api/chat`);
+            return undefined;
+        }
+        throw new Error(`output-limit probe for ${id}: unrecognized error: ${error.slice(0, 200)}`);
+    }
     const output = Number(match[1]);
     if (!Number.isInteger(output) || output <= 0)
         throw new Error(`output-limit probe for ${id}: invalid cap ${output}`);
@@ -94,6 +106,7 @@ export async function fetchModelSpec(id: string, impl: FetchImpl = fetch): Promi
     if (!show.modified_at) throw new Error("modified_at missing");
 
     const vision = capability(show.capabilities, "vision");
+    const output = await probeMaxOutput(id, impl);
     const model: Model = {
         id,
         name: displayName(id),
@@ -102,7 +115,7 @@ export async function fetchModelSpec(id: string, impl: FetchImpl = fetch): Promi
         tool_call: capability(show.capabilities, "tools"),
         limit: {
             context: contextLengthOf(show.model_info),
-            output: await probeMaxOutput(id, impl),
+            ...(output !== undefined ? { output } : {}),
         },
         modalities: {
             input: vision ? ["text", "image"] : ["text"],

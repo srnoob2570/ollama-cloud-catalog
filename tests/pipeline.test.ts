@@ -25,7 +25,14 @@ import {
 } from "../src/catalog/assemble.ts";
 import { buildRatePrompt, extractRates } from "../src/catalog/extract-rates.ts";
 import { extractJson } from "../src/extract/ai.ts";
-import { SHOW_GLM53, PROBE_GLM53_ERROR, PRICING_SECTION, PRICING_SECTION_PEAK } from "./fixtures.ts";
+import {
+    SHOW_GLM53,
+    PROBE_GLM53_ERROR,
+    SHOW_CLEF27B,
+    PROBE_CLEF27B_ERROR,
+    PRICING_SECTION,
+    PRICING_SECTION_PEAK,
+} from "./fixtures.ts";
 
 // Route requests by URL substring: a plain value becomes a 200 JSON
 // Response, a function returns its own Response, a miss throws. Injected
@@ -221,6 +228,15 @@ describe("/api/show mapping", () => {
         });
         await expect(fetchModelSpec("glm-5.3", impl)).rejects.toThrow("unrecognized error");
     });
+
+    test("decision model refused by /api/chat omits limit.output instead of failing", async () => {
+        const impl = fakeFetch({
+            "/api/show": SHOW_CLEF27B,
+            "/api/chat": () => new Response(JSON.stringify(PROBE_CLEF27B_ERROR), { status: 400 }),
+        });
+        const model = await fetchModelSpec("clef:27b", impl);
+        expect(model.limit).toEqual({ context: 65536 });
+    });
 });
 
 describe("fetchAllSpecs fallback matrix", () => {
@@ -259,6 +275,16 @@ describe("fetchAllSpecs fallback matrix", () => {
             "/api/show": () => new Response("boom", { status: 500 }),
         });
         await expect(fetchAllSpecs(["glm-5.3"], new Map(), 1, impl)).rejects.toThrow("no previous spec exists");
+    });
+
+    test("a new decision model with no previous spec catalogs without aborting", async () => {
+        const impl = fakeFetch({
+            "/api/show": SHOW_CLEF27B,
+            "/api/chat": () => new Response(JSON.stringify(PROBE_CLEF27B_ERROR), { status: 400 }),
+        });
+        const specs = await fetchAllSpecs(["clef:27b"], new Map(), 1, impl);
+        expect(specs).toHaveLength(1);
+        expect(specs[0]!.limit.output).toBeUndefined();
     });
 });
 

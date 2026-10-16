@@ -15,11 +15,9 @@ export type RateResolution = {
     // Catalog models with no standard rate row. The caller warns and any
     // previous cost stands; never fatal on its own.
     uncovered: string[];
-    // Models whose "(Off-Peak)" mirror rows were verified but are NOT
-    // published: the page carries no time window, and time-varying rates
-    // without their window are refused (same rule as the old peak table,
-    // see extractPricingTables).
-    offPeak: string[];
+    // The "(Off-Peak)" mirror rows resolved to catalog ids, published under
+    // x_ollama together with the window sentence read from the page.
+    offPeakById: Map<string, Cost>;
 };
 
 // Since 2026-10-16 the single rate card lists a model priced differently
@@ -50,7 +48,7 @@ export function resolveRates(
     const costById = new Map<string, Cost>();
     const problems: string[] = [];
     const uncovered: string[] = [];
-    const offPeak: string[] = [];
+    const offPeakById = new Map<string, Cost>();
     const baseRates = rates.filter((rate) => !OFF_PEAK_RE.test(rate.model));
     const offPeakRates = rates.filter((rate) => OFF_PEAK_RE.test(rate.model));
 
@@ -84,10 +82,14 @@ export function resolveRates(
             problems.push(`off-peak rate for ${id} has no standard row to mirror`);
             continue;
         }
-        offPeak.push(id);
+        offPeakById.set(id, {
+            input: rate.input,
+            ...(rate.cached_input !== null ? { cache_read: rate.cached_input } : {}),
+            ...(rate.output !== null ? { output: rate.output } : {}),
+        });
     }
 
     if (checkCoverage) for (const id of catalogIds) if (!costById.has(id)) uncovered.push(id);
 
-    return { costById, problems, uncovered, offPeak };
+    return { costById, problems, uncovered, offPeakById };
 }

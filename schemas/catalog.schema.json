@@ -188,6 +188,30 @@
                       "input"
                     ]
                   },
+                  "off_peak_cost": {
+                    "type": "object",
+                    "properties": {
+                      "input": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "output": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "cache_read": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "cache_write": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      }
+                    },
+                    "required": [
+                      "input"
+                    ]
+                  },
                   "reasoning_options": {
                     "type": "array",
                     "items": {

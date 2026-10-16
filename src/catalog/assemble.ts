@@ -24,6 +24,7 @@ export type CatalogSources = {
     specs: Model[]; // one per listed id, in any order
     costs: Map<string, Cost>; // from previous artifacts, keyed by model id
     peakCosts?: Map<string, Cost>; // models the rate card peak-prices
+    offPeakCosts?: Map<string, Cost>; // models the rate card lists off-peak
     modelsDevSeed?: Map<string, SeedEntry>; // metadata no Ollama endpoint exposes, build-time only
     metaPrior?: Map<string, ModelMeta>; // previous artifact's description and temperature
 };
@@ -38,6 +39,7 @@ export function buildCatalogDoc(sources: CatalogSources): CatalogDoc {
         sources.specs.map((spec) => {
             const cost = sources.costs.get(spec.id);
             const peakCost = sources.peakCosts?.get(spec.id);
+            const offPeakCost = sources.offPeakCosts?.get(spec.id);
             const entry = sources.modelsDevSeed ? seedEntry(sources.modelsDevSeed, spec.id) : undefined;
             const meta = sources.metaPrior?.get(spec.id);
             // Effort tiers: the same four tiers for every cataloged model,
@@ -55,6 +57,7 @@ export function buildCatalogDoc(sources: CatalogSources): CatalogDoc {
                     x_ollama: {
                         ...spec.x_ollama,
                         ...(peakCost ? { peak_cost: peakCost } : {}),
+                        ...(offPeakCost ? { off_peak_cost: offPeakCost } : {}),
                         ...(reasoningOptions ? { reasoning_options: reasoningOptions } : {}),
                     },
                 },
@@ -92,21 +95,26 @@ export function modelsWithoutCost(doc: CatalogDoc): string[] {
 export function buildPricingDoc(
     costById: Map<string, Cost>,
     peak?: { window: string; costById: Map<string, Cost> },
+    offPeak?: { window: string; costById: Map<string, Cost> },
 ): PricingDoc {
+    // Each time-varying class publishes its window (read from the page) plus
+    // the models it covers; x_ollama exists only when at least one does.
+    const x_ollama = {
+        ...(peak ? { peak_window: peak.window, models: Object.fromEntries([...peak.costById.entries()]) } : {}),
+        ...(offPeak
+            ? {
+                  off_peak_window: offPeak.window,
+                  off_peak_models: Object.fromEntries([...offPeak.costById.entries()]),
+              }
+            : {}),
+    };
     const doc = {
         $schema: `${SCHEMA_BASE}/pricing.schema.json`,
         provider: "ollama-cloud",
         generated_at: new Date().toISOString(),
         source: "https://ollama.com/pricing",
         models: Object.fromEntries([...costById.entries()].map(([id, cost]) => [id, cost])),
-        ...(peak
-            ? {
-                  x_ollama: {
-                      peak_window: peak.window,
-                      models: Object.fromEntries([...peak.costById.entries()].map(([id, cost]) => [id, cost])),
-                  },
-              }
-            : {}),
+        ...(Object.keys(x_ollama).length > 0 ? { x_ollama } : {}),
     };
     return PricingDocSchema.parse(doc);
 }
@@ -130,38 +138,44 @@ export function refreshDecision(
     costById: Map<string, Cost>,
     peakCostById: Map<string, Cost>,
     peak?: { window: string },
+    offPeak?: { window: string; costById: Map<string, Cost> },
 ): RefreshDecision {
-    const next = buildPricingDoc(costById, peak ? { window: peak.window, costById: peakCostById } : undefined);
+    const next = buildPricingDoc(costById, peak ? { window: peak.window, costById: peakCostById } : undefined, offPeak);
     const signature = (doc: PricingDoc) => stableStringify({ models: doc.models, x_ollama: doc.x_ollama ?? null });
     if (previousPricing && signature(previousPricing) === signature(next)) {
-        const repaired = applyCosts(catalog, costById, peakCostById);
+        const repaired = applyCosts(catalog, costById, peakCostById, offPeak?.costById);
         if (stableStringify(repaired) !== stableStringify(catalog)) return { action: "repair", catalog: repaired };
         return { action: "skip" };
     }
     return {
         action: "publish",
-        catalog: applyCosts(catalog, costById, peakCostById),
+        catalog: applyCosts(catalog, costById, peakCostById, offPeak?.costById),
         pricing: next,
     };
 }
 
 // Merge-back helper for update-pricing: refresh cost fields in the catalog
-// doc in place (specs, hash and generation stamp untouched). Peak rates ride
-// under the per-model x_ollama extension. The cost map only refreshes
-// (standard cost is never removed); the peak map is authoritative. A model
-// the rate card no longer peak-prices loses its peak_cost.
+// doc in place (specs, hash and generation stamp untouched). Peak and
+// off-peak rates ride under the per-model x_ollama extension. The cost map
+// only refreshes (standard cost is never removed); the peak and off-peak
+// maps are authoritative. A model the rate card no longer peak-prices or
+// lists off-peak loses that extension field.
 export function applyCosts(
     catalog: CatalogDoc,
     costById: Map<string, Cost>,
     peakCostById: Map<string, Cost>,
+    offPeakById: Map<string, Cost> = new Map(),
 ): CatalogDoc {
     const models = Object.fromEntries(
         Object.entries(catalog.provider.models).map(([id, model]) => {
             const cost = costById.get(id);
             const peakCost = peakCostById.get(id);
+            const offPeakCost = offPeakById.get(id);
             const x_ollama = { ...model.x_ollama };
             if (peakCost) x_ollama.peak_cost = peakCost;
             else delete x_ollama.peak_cost;
+            if (offPeakCost) x_ollama.off_peak_cost = offPeakCost;
+            else delete x_ollama.off_peak_cost;
             return [
                 id,
                 {
@@ -214,6 +228,16 @@ export function previousPeakCosts(catalog: CatalogDoc | undefined): Map<string, 
     const costs = new Map<string, Cost>();
     for (const [id, model] of Object.entries(catalog?.provider.models ?? {}))
         if (model.x_ollama.peak_cost) costs.set(id, model.x_ollama.peak_cost);
+    return costs;
+}
+
+// Mirror of previousPeakCosts for the off-peak rates: they must survive
+// catalog rebuilds too, or every hash-gated update would silently strip
+// them until the next pricing run re-reads the rate card.
+export function previousOffPeakCosts(catalog: CatalogDoc | undefined): Map<string, Cost> {
+    const costs = new Map<string, Cost>();
+    for (const [id, model] of Object.entries(catalog?.provider.models ?? {}))
+        if (model.x_ollama.off_peak_cost) costs.set(id, model.x_ollama.off_peak_cost);
     return costs;
 }
 

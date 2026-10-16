@@ -15,7 +15,7 @@ import {
     refreshDecision,
 } from "./catalog/assemble.ts";
 
-const { standard, peak, peakWindow } = extractPricingTables(await fetchPricingHtml());
+const { standard, peak, peakWindow, offPeakWindow } = extractPricingTables(await fetchPricingHtml());
 console.log(
     `pricing tables extracted: ${standard.rowCount} standard rows` +
         (peak ? `, ${peak.rowCount} peak rows` : ", no peak table"),
@@ -28,7 +28,7 @@ const catalog = await loadCatalog();
 if (!catalog) throw new Error("catalog.json missing; run update-catalog first");
 const models = new Map(Object.entries(catalog.provider.models));
 
-const { costById, problems: standardProblems, uncovered, offPeak } = resolveRates(extraction.rates, models);
+const { costById, problems: standardProblems, uncovered, offPeakById } = resolveRates(extraction.rates, models);
 const { costById: peakCostById, problems: peakProblems } = resolveRates(extraction.peak_rates, models, false);
 const problems = [...standardProblems, ...peakProblems];
 if (problems.length > 0) {
@@ -41,10 +41,10 @@ if (problems.length > 0) {
 // all (beam, free promo since 2026-10-16).
 for (const id of uncovered)
     console.warn(`! catalog model ${id} has no rate on the pricing page; previous cost, if any, stands`);
-// Off-peak mirror rows are verified but not published: the page no longer
-// documents when the discounted rates apply.
-if (offPeak.length > 0)
-    console.warn(`! off-peak rates not published (no time window on the pricing page): ${offPeak.join(", ")}`);
+// extractPricingTables already refuses window-less off-peak rows; this guards
+// the seam between the two modules.
+if (offPeakById.size > 0 && !offPeakWindow)
+    throw new Error("off-peak rates found but their window paragraph is missing");
 
 // A refresh with identical rates is not a change: refreshDecision skips the
 // write, repairs a lagging catalog, or publishes both artifacts.
@@ -54,6 +54,7 @@ const decision = refreshDecision(
     costById,
     peakCostById,
     peak && peakWindow ? { window: peakWindow } : undefined,
+    offPeakById.size > 0 && offPeakWindow ? { window: offPeakWindow, costById: offPeakById } : undefined,
 );
 if (decision.action === "skip") {
     console.log("rates unchanged since last run; pricing.json not touched");
@@ -68,5 +69,6 @@ if (decision.action === "repair") {
 await publishCatalog(decision.catalog);
 await publishPricing(decision.pricing);
 console.log(
-    `published pricing.json and refreshed cost in catalog.json (${costById.size} standard, ${peakCostById.size} peak, source: ${PRICING_URL})`,
+    `published pricing.json and refreshed cost in catalog.json (${costById.size} standard, ${peakCostById.size} peak, ` +
+        `${offPeakById.size} off-peak, source: ${PRICING_URL})`,
 );

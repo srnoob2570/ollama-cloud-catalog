@@ -12,6 +12,7 @@ import {
     modelsWithoutCost,
     previousCosts,
     previousModelMeta,
+    previousOffPeakCosts,
     previousPeakCosts,
     previousSpecs,
     publishCatalog,
@@ -62,6 +63,7 @@ const doc = buildCatalogDoc({
     specs,
     costs: previousCosts(previous),
     peakCosts: previousPeakCosts(previous),
+    offPeakCosts: previousOffPeakCosts(previous),
     ...(modelsDevSeed ? { modelsDevSeed } : {}),
     metaPrior: previousModelMeta(previous),
 });

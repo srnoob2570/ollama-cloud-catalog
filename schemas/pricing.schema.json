@@ -83,12 +83,42 @@
               "input"
             ]
           }
+        },
+        "off_peak_window": {
+          "type": "string",
+          "minLength": 1
+        },
+        "off_peak_models": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "input": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "output": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "cache_read": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "cache_write": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "input"
+            ]
+          }
         }
-      },
-      "required": [
-        "peak_window",
-        "models"
-      ]
+      }
     }
   },
   "required": [

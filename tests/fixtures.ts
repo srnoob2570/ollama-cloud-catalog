@@ -130,6 +130,29 @@ export const PRICING_SECTION_PEAK = `<section id="model-pricing">
   </tbody></table>
 </section>`;
 
+// The intro paragraph of the live section (2026-10-16), verbatim. The
+// 2026-10-16T23:47 pipeline run claimed this text was missing — it was a
+// probe bug: the paragraph has a class attribute a bare `<p>` regex missed.
+export const OFF_PEAK_WINDOW_LIVE =
+    "Off-peak pricing apply outside 12:00 and 18:00 UTC on weekdays and all day on weekends.";
+
+// The live section shape (2026-10-16, trimmed to the load-bearing rows): an
+// intro paragraph carrying the off-peak window, one rate table, and inline
+// "Model (Off-Peak)" mirror rows with the same library-link markup.
+export const PRICING_SECTION_OFFPEAK = `<section id="model-pricing">
+  <h2>Model pricing</h2>
+  <p class="text-sm text-neutral-500 mb-6">Pay as you go with usage credits. Prices are per million tokens. Off-peak pricing apply outside 12:00 and 18:00 UTC on weekdays and all day on weekends.</p>
+  <table><tbody>
+    <tr><th>Model</th><th>Input</th><th>Cached input</th><th>Output</th></tr>
+    <tr><td><a href="/library/clef">clef</a></td><td>$0.24</td><td>-</td><td>-</td></tr>
+    <tr><td><a href="/library/deepseek-v4.1-flash">deepseek-v4.1-flash</a></td><td>$0.30</td><td>$0.006</td><td>$1.20</td></tr>
+    <tr><td><a href="/library/deepseek-v4.1-flash">deepseek-v4.1-flash (Off-Peak)</a></td><td>$0.15</td><td>$0.003</td><td>$0.60</td></tr>
+    <tr><td><a href="/library/deepseek-v4-pro">deepseek-v4-pro</a></td><td>$1.32</td><td>$0.044</td><td>$3.96</td></tr>
+    <tr><td><a href="/library/deepseek-v4-pro">deepseek-v4-pro (Off-Peak)</a></td><td>$0.66</td><td>$0.022</td><td>$1.98</td></tr>
+    <tr><td><a href="/library/glm-5.3">glm-5.3</a></td><td>$1.40</td><td>$0.26</td><td>$4.40</td></tr>
+  </tbody></table>
+</section>`;
+
 export const MODELS_LIST = {
     object: "list",
     data: [

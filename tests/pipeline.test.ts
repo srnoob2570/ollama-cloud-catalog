@@ -32,6 +32,8 @@ import {
     PROBE_CLEF27B_ERROR,
     PRICING_SECTION,
     PRICING_SECTION_PEAK,
+    PRICING_SECTION_OFFPEAK,
+    OFF_PEAK_WINDOW_LIVE,
     RATES_LIVE_2026_10_16,
     LIVE_MODEL_IDS_2026_10_16,
 } from "./fixtures.ts";
@@ -114,6 +116,22 @@ describe("peak pricing extraction", () => {
       <table><tr><th>Model</th><th>Input</th></tr><tr><td><a href="/library/glm-5.3">glm-5.3</a></td><td>$2</td></tr></table>
     </section>`;
         expect(() => extractPricingTables(html)).toThrow("window paragraph is missing");
+    });
+
+    test("live shape: the intro paragraph is the off-peak window", () => {
+        const { standard, peak, peakWindow, offPeakWindow } = extractPricingTables(PRICING_SECTION_OFFPEAK);
+        expect(standard.rowCount).toBe(6);
+        expect(peak).toBeUndefined();
+        expect(peakWindow).toBeUndefined();
+        expect(offPeakWindow).toBe(OFF_PEAK_WINDOW_LIVE);
+    });
+
+    test("off-peak rows without their window paragraph fail loud", () => {
+        const html = PRICING_SECTION_OFFPEAK.replace(
+            /<p class="text-sm text-neutral-500 mb-6">.*?<\/p>/,
+            "<p>Prices are per million tokens.</p>",
+        );
+        expect(() => extractPricingTables(html)).toThrow("off-peak rates found but their window paragraph is missing");
     });
 });
 
@@ -224,28 +242,27 @@ describe("live 2026-10-16 rate card", () => {
     });
 
     test("resolution: off-peak mirrors verified, beam uncovered, clef cost without output", () => {
-        const { costById, problems, uncovered, offPeak } = resolveRates(RATES_LIVE_2026_10_16, liveCatalog());
+        const { costById, offPeakById, problems, uncovered } = resolveRates(RATES_LIVE_2026_10_16, liveCatalog());
         expect(problems).toEqual([]);
         expect(uncovered).toEqual(["beam"]);
-        expect(offPeak).toEqual(["deepseek-v4.1-flash", "deepseek-v4-pro:0813"]);
+        expect(offPeakById.get("deepseek-v4.1-flash")).toEqual({ input: 0.15, cache_read: 0.003, output: 0.6 });
+        expect(offPeakById.get("deepseek-v4-pro:0813")).toEqual({ input: 0.66, cache_read: 0.022, output: 1.98 });
         expect(costById.size).toBe(20);
         expect(costById.get("clef:27b")).toEqual({ input: 0.24 });
         expect(costById.get("deepseek-v4.1-flash")).toEqual({ input: 0.3, cache_read: 0.006, output: 1.2 });
     });
 
     test("an off-peak row without a standard row to mirror is fatal", () => {
-        const rates = [
-            { model: "glm-5.3", input: 1.4, cached_input: 0.26, output: 4.4 },
-            { model: "glm-5.3 (Off-Peak)", input: 0.7, cached_input: 0.13, output: 2.2 },
-        ];
-        // glm-5.3 covered above, but remove the base row: only the mirror remains
-        const out = resolveRates([rates[1]!], liveCatalog());
+        const out = resolveRates(
+            [{ model: "glm-5.3 (Off-Peak)", input: 0.7, cached_input: 0.13, output: 2.2 }],
+            liveCatalog(),
+        );
         expect(out.problems).toHaveLength(1);
         expect(out.problems[0]).toContain("off-peak");
     });
 
-    test("refresh publishes input-only cost, drops stale peak data, leaves beam costless", () => {
-        const { costById } = resolveRates(RATES_LIVE_2026_10_16, liveCatalog());
+    test("refresh publishes input-only cost and the off-peak rates with their window", () => {
+        const { costById, offPeakById } = resolveRates(RATES_LIVE_2026_10_16, liveCatalog());
         // catalog as published by the failing run: merge-back carried peak_cost
         // from the era Ollama still had a peak table
         const stalePeak = new Map([
@@ -261,20 +278,37 @@ describe("live 2026-10-16 rate card", () => {
         const previousPricing = PricingDocSchema.parse({
             $schema: "https://example/pricing.schema.json",
             provider: "ollama-cloud",
-            generated_at: "2026-09-05T10:00:00.000Z",
+            generated_at: "2026-10-16T23:47:16.000Z",
             source: "https://ollama.com/pricing",
             models: { "glm-5.3": { input: 1.4, output: 4.4 } },
-            x_ollama: {
-                peak_window: "Peak pricing applies between 12:00 and 18:00 UTC, Monday to Friday.",
-                models: { "deepseek-v4-pro:0813": { input: 2.64, output: 7.92 } },
-            },
         });
-        const decision = refreshDecision(previousPricing, catalog, costById, new Map());
+        const decision = refreshDecision(previousPricing, catalog, costById, new Map(), undefined, {
+            window: OFF_PEAK_WINDOW_LIVE,
+            costById: offPeakById,
+        });
         if (decision.action !== "publish") throw new Error("expected publish");
-        expect(decision.pricing.x_ollama).toBeUndefined();
+        // peak data unpublishes; off-peak publishes with the page's window
+        expect(decision.pricing.x_ollama?.peak_window).toBeUndefined();
+        expect(decision.pricing.x_ollama?.models).toBeUndefined();
+        expect(decision.pricing.x_ollama?.off_peak_window).toBe(OFF_PEAK_WINDOW_LIVE);
+        expect(decision.pricing.x_ollama?.off_peak_models?.["deepseek-v4.1-flash"]).toEqual({
+            input: 0.15,
+            cache_read: 0.003,
+            output: 0.6,
+        });
         expect(decision.pricing.models["clef:27b"]).toEqual({ input: 0.24 });
         expect(decision.catalog.provider.models["deepseek-v4.1-flash"]?.x_ollama.peak_cost).toBeUndefined();
         expect(decision.catalog.provider.models["deepseek-v4-pro:0813"]?.x_ollama.peak_cost).toBeUndefined();
+        expect(decision.catalog.provider.models["deepseek-v4.1-flash"]?.x_ollama.off_peak_cost).toEqual({
+            input: 0.15,
+            cache_read: 0.003,
+            output: 0.6,
+        });
+        expect(decision.catalog.provider.models["deepseek-v4-pro:0813"]?.x_ollama.off_peak_cost).toEqual({
+            input: 0.66,
+            cache_read: 0.022,
+            output: 1.98,
+        });
         expect(decision.catalog.provider.models["beam"]?.cost).toBeUndefined();
         expect(decision.catalog.provider.models["clef:27b"]?.cost).toEqual({ input: 0.24 });
     });
@@ -733,12 +767,12 @@ describe("artifact assembly", () => {
         });
         expect(PricingDocSchema.parse(pricing)).toBeDefined();
         expect(pricing.x_ollama?.peak_window).toContain("12:00 and 18:00");
-        expect(pricing.x_ollama?.models["glm-5.3"]).toEqual({
+        expect(pricing.x_ollama?.models?.["glm-5.3"]).toEqual({
             input: 2.8,
             output: 8.8,
             cache_read: 0.52,
         });
-        expect(pricing.x_ollama?.models["glm-5.3-flash"]).toBeUndefined();
+        expect(pricing.x_ollama?.models?.["glm-5.3-flash"]).toBeUndefined();
 
         // No-peak variant: pricing doc carries no x_ollama at all.
         const flat = buildPricingDoc(costs);
@@ -758,6 +792,30 @@ describe("artifact assembly", () => {
         // An empty peak map leaves the standard cost untouched.
         const costOnly = applyCosts(doc, costs, new Map());
         expect(costOnly.provider.models["glm-5.3-flash"]?.cost).toEqual(costs.get("glm-5.3-flash"));
+
+        // Off-peak mirrors the peak machinery: a per-model catalog cost and a
+        // windowed x_ollama block in pricing.json.
+        const offPeakCosts = new Map([["glm-5.3", { input: 0.7, output: 2.2, cache_read: 0.13 }]]);
+        const offPeakDoc = buildCatalogDoc({ modelsHash: "a".repeat(64), specs, costs, peakCosts, offPeakCosts });
+        expect(offPeakDoc.provider.models["glm-5.3"]?.x_ollama.off_peak_cost).toEqual({
+            input: 0.7,
+            output: 2.2,
+            cache_read: 0.13,
+        });
+        const offPeakPricing = buildPricingDoc(costs, undefined, {
+            window: OFF_PEAK_WINDOW_LIVE,
+            costById: offPeakCosts,
+        });
+        expect(offPeakPricing.x_ollama?.off_peak_window).toBe(OFF_PEAK_WINDOW_LIVE);
+        expect(offPeakPricing.x_ollama?.off_peak_models?.["glm-5.3"]).toEqual({
+            input: 0.7,
+            output: 2.2,
+            cache_read: 0.13,
+        });
+        // The off-peak map is authoritative, like the peak map: a model it no
+        // longer lists loses its stale off_peak_cost.
+        const unoffpeaked = applyCosts(offPeakDoc, costs, peakCosts, new Map());
+        expect(unoffpeaked.provider.models["glm-5.3"]?.x_ollama.off_peak_cost).toBeUndefined();
     });
 });
 
@@ -907,7 +965,7 @@ describe("pricing refresh decision", () => {
             { window: "12:00-18:00 UTC" },
         );
         expect(withPeak.action).toBe("publish");
-        if (withPeak.action === "publish") expect(withPeak.pricing.x_ollama?.models["glm-5.3"]).toEqual(peak);
+        if (withPeak.action === "publish") expect(withPeak.pricing.x_ollama?.models?.["glm-5.3"]).toEqual(peak);
 
         const withoutPeak = refreshDecision(
             pricingDoc({ "glm-5.3": standard }, { peak_window: "12:00-18:00 UTC", models: { "glm-5.3": peak } }),

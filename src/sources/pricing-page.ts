@@ -36,11 +36,16 @@ export type PricingTable = { markdown: string; rowCount: number };
 // The section holds up to two tables: the standard (off-peak) rate card
 // first, then, since 2026-09, a "Peak pricing" table (2x rates, 12:00-18:00
 // UTC Mon-Fri) listing only the models subject to it. The peak window text
-// is read from the page, not from the LLM.
+// is read from the page, not from the LLM. Since 2026-10-16 the peak table
+// is gone and the single rate card carries inline "Model (Off-Peak)" mirror
+// rows instead; their window sentence lives in the section's intro
+// paragraph ("Off-peak pricing apply outside 12:00 and 18:00 UTC on weekdays
+// and all day on weekends.") and is read deterministically too.
 export function extractPricingTables(html: string): {
     standard: PricingTable;
     peak: PricingTable | undefined;
     peakWindow: string | undefined;
+    offPeakWindow: string | undefined;
 } {
     const $ = cheerio.load(extractPricingSection(html));
     const tableToMarkdown = (table: cheerio.Cheerio<any>): PricingTable => {
@@ -87,5 +92,19 @@ export function extractPricingTables(html: string): {
         peakWindow = windowText;
         peak = tableToMarkdown(peakTable);
     }
-    return { standard, peak, peakWindow };
+    // The intro paragraph under the heading documents the off-peak window.
+    const introText = $("p").first().text().replace(/\s+/g, " ").trim();
+    const offPeakWindow = OFF_PEAK_WINDOW_SENTENCE.exec(introText)?.[0];
+    // Off-peak mirror rows without their window text are time-varying rates
+    // with no window — the same refusal as a peak table without its
+    // paragraph, instead of silently dropping or publishing them windowless.
+    if (!offPeakWindow && OFF_PEAK_ROW_RE.test(standard.markdown))
+        throw new Error("off-peak rates found but their window paragraph is missing");
+    return { standard, peak, peakWindow, offPeakWindow };
 }
+
+// The window sentence of the live intro paragraph (2026-10-16): "Off-peak
+// pricing apply outside 12:00 and 18:00 UTC on weekdays and all day on
+// weekends." — captured up to the sentence's period, nothing else.
+const OFF_PEAK_WINDOW_SENTENCE = /Off-peak pricing[^.]*\./i;
+const OFF_PEAK_ROW_RE = /\(Off-Peak\)/i;

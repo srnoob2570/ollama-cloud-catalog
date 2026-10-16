@@ -40,6 +40,9 @@ export const OllamaMetaSchema = z.object({
     // Present only on models the rate card lists under peak pricing
     // (12:00-18:00 UTC Mon-Fri on ollama.com); `cost` stays the standard rate.
     peak_cost: CostSchema.optional(),
+    // The "(Off-Peak)" mirror rate (2026-10-16: half price outside 12:00-18:00
+    // UTC on weekdays and all day on weekends); `cost` stays the listed rate.
+    off_peak_cost: CostSchema.optional(),
     // Reasoning-effort tiers the model accepts (ollama.com/v1 maps
     // reasoning_effort onto its native think level). Not exposed by any Ollama
     // endpoint; confirmed live on 2026-09-12 as the same four tiers for every
@@ -94,10 +97,16 @@ export const PricingDocSchema = z.object({
     generated_at: z.string().datetime({ offset: true }),
     source: z.string(),
     models: z.record(z.string(), CostSchema),
+    // Time-varying rate classes, each with the window sentence read from the
+    // pricing page (the LLM never supplies window text). `peak_window`/`models`
+    // are the historical peak block; `off_peak_window`/`off_peak_models` are
+    // the inline mirror rows the card grew on 2026-10-16.
     x_ollama: z
         .object({
-            peak_window: z.string().min(1),
-            models: z.record(z.string(), CostSchema),
+            peak_window: z.string().min(1).optional(),
+            models: z.record(z.string(), CostSchema).optional(),
+            off_peak_window: z.string().min(1).optional(),
+            off_peak_models: z.record(z.string(), CostSchema).optional(),
         })
         .optional(),
 });

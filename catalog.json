@@ -40,6 +40,9 @@
       },
       "clef:27b": {
         "attachment": true,
+        "cost": {
+          "input": 0.24
+        },
         "id": "clef:27b",
         "limit": {
           "context": 65536
@@ -72,9 +75,9 @@
       "deepseek-v4-pro:0813": {
         "attachment": false,
         "cost": {
-          "cache_read": 0.022,
-          "input": 0.66,
-          "output": 1.98
+          "cache_read": 0.044,
+          "input": 1.32,
+          "output": 3.96
         },
         "description": "DeepSeek V4 Pro snapshot with million-token context and support for thinking and non-thinking modes",
         "id": "deepseek-v4-pro:0813",
@@ -98,11 +101,6 @@
         "x_ollama": {
           "ollama_family": "deepseek4",
           "parameter_count": 1650497936906,
-          "peak_cost": {
-            "cache_read": 0.044,
-            "input": 1.32,
-            "output": 3.96
-          },
           "quantization": "FP8",
           "reasoning_options": [
             "low",
@@ -115,9 +113,9 @@
       "deepseek-v4.1-flash": {
         "attachment": true,
         "cost": {
-          "cache_read": 0.003,
-          "input": 0.15,
-          "output": 0.6
+          "cache_read": 0.006,
+          "input": 0.3,
+          "output": 1.2
         },
         "description": "DeepSeek V4.1 Flash model for reasoning and agentic coding",
         "id": "deepseek-v4.1-flash",
@@ -142,11 +140,6 @@
         "x_ollama": {
           "ollama_family": "deepseek_v41",
           "parameter_count": 763205315794,
-          "peak_cost": {
-            "cache_read": 0.006,
-            "input": 0.3,
-            "output": 1.2
-          },
           "quantization": "FP8",
           "reasoning_options": [
             "low",
@@ -613,6 +606,11 @@
       },
       "mistral-large-4": {
         "attachment": true,
+        "cost": {
+          "cache_read": 0.07,
+          "input": 0.68,
+          "output": 2.09
+        },
         "description": "Mistral's 1T-parameter multimodal MoE for reasoning, coding, and agentic work",
         "id": "mistral-large-4",
         "limit": {
@@ -647,6 +645,11 @@
       },
       "muse-spark-open": {
         "attachment": true,
+        "cost": {
+          "cache_read": 0.15,
+          "input": 1.25,
+          "output": 4.25
+        },
         "description": "Muse Spark Open is an 816B total / 42B active open-weight multimodal reasoning model from Meta for coding and long-horizon agentic work, with 1M-token context.",
         "id": "muse-spark-open",
         "limit": {

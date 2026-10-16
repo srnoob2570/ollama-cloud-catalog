@@ -800,7 +800,7 @@
     "npm": "@ai-sdk/openai-compatible"
   },
   "x_ollama": {
-    "generated_at": "2026-10-16T23:32:27.041Z",
+    "generated_at": "2026-10-16T23:52:12.641Z",
     "models_hash": "104291a33187365982f200fe53a35827b284fbf3dd83b6f59467092f068f9d37",
     "sources": {
       "models": "https://ollama.com/v1/models",

@@ -32,6 +32,8 @@ import {
     PROBE_CLEF27B_ERROR,
     PRICING_SECTION,
     PRICING_SECTION_PEAK,
+    RATES_LIVE_2026_10_16,
+    LIVE_MODEL_IDS_2026_10_16,
 } from "./fixtures.ts";
 
 // Route requests by URL substring: a plain value becomes a 200 JSON
@@ -164,24 +166,117 @@ describe("resolveRateId", () => {
 });
 
 describe("coverage", () => {
-    test("any problem aborts", () => {
-        const model = ModelSchema.parse({
-            id: "glm-5.3",
-            name: "Glm 5.3",
-            attachment: false,
-            reasoning: true,
-            tool_call: true,
-            limit: { context: 202000 },
-            release_date: "2026-08-27",
-            x_ollama: { quantization: "FP8", ollama_family: "glm", parameter_count: 358000000000 },
-        });
-        const models = new Map([[model.id, model]]);
-        const rates = [{ model: "glm-5.3", input: 1.4, cached_input: 0.26, output: 4.4 }];
+    const model = ModelSchema.parse({
+        id: "glm-5.3",
+        name: "Glm 5.3",
+        attachment: false,
+        reasoning: true,
+        tool_call: true,
+        limit: { context: 202000 },
+        release_date: "2026-08-27",
+        x_ollama: { quantization: "FP8", ollama_family: "glm", parameter_count: 358000000000 },
+    });
+    const models = new Map([[model.id, model]]);
+    const rates = [{ model: "glm-5.3", input: 1.4, cached_input: 0.26, output: 4.4 }];
+
+    test("covered and clean resolution has no problems", () => {
         expect(resolveRates(rates, models).problems).toEqual([]);
-        expect(resolveRates([], models).problems).toHaveLength(1);
-        expect(
-            resolveRates([{ model: "who-dis", input: 1, cached_input: 1, output: 1 }], models).problems,
-        ).toHaveLength(2);
+        expect(resolveRates(rates, models).uncovered).toEqual([]);
+    });
+
+    test("an uncovered catalog model is reported, not fatal", () => {
+        const out = resolveRates([], models);
+        expect(out.problems).toEqual([]);
+        expect(out.uncovered).toEqual(["glm-5.3"]);
+    });
+
+    test("an unknown rate row stays fatal", () => {
+        const out = resolveRates([{ model: "who-dis", input: 1, cached_input: 1, output: 1 }], models);
+        expect(out.problems).toHaveLength(1);
+        expect(out.uncovered).toEqual(["glm-5.3"]);
+    });
+});
+
+describe("live 2026-10-16 rate card", () => {
+    // The captured shape of the real page: an input-only model (clef, output
+    // '-'), inline "(Off-Peak)" mirror rows with no window text, and beam —
+    // served but deliberately unpriced (free promo).
+    const liveCatalog = () =>
+        new Map(
+            LIVE_MODEL_IDS_2026_10_16.map((id) => [
+                id,
+                ModelSchema.parse({
+                    id,
+                    name: id,
+                    attachment: false,
+                    reasoning: false,
+                    tool_call: false,
+                    limit: { context: 202000 },
+                    release_date: "2026-08-27",
+                    x_ollama: { quantization: "FP8", ollama_family: "x" },
+                }),
+            ]),
+        );
+
+    test("the extraction contract accepts the live reply (clef row prices no output)", () => {
+        const extraction = RateCardExtractionSchema.parse({ rates: RATES_LIVE_2026_10_16, peak_rates: [] });
+        expect(extraction.rates[0]!.output).toBeNull();
+    });
+
+    test("resolution: off-peak mirrors verified, beam uncovered, clef cost without output", () => {
+        const { costById, problems, uncovered, offPeak } = resolveRates(RATES_LIVE_2026_10_16, liveCatalog());
+        expect(problems).toEqual([]);
+        expect(uncovered).toEqual(["beam"]);
+        expect(offPeak).toEqual(["deepseek-v4.1-flash", "deepseek-v4-pro:0813"]);
+        expect(costById.size).toBe(20);
+        expect(costById.get("clef:27b")).toEqual({ input: 0.24 });
+        expect(costById.get("deepseek-v4.1-flash")).toEqual({ input: 0.3, cache_read: 0.006, output: 1.2 });
+    });
+
+    test("an off-peak row without a standard row to mirror is fatal", () => {
+        const rates = [
+            { model: "glm-5.3", input: 1.4, cached_input: 0.26, output: 4.4 },
+            { model: "glm-5.3 (Off-Peak)", input: 0.7, cached_input: 0.13, output: 2.2 },
+        ];
+        // glm-5.3 covered above, but remove the base row: only the mirror remains
+        const out = resolveRates([rates[1]!], liveCatalog());
+        expect(out.problems).toHaveLength(1);
+        expect(out.problems[0]).toContain("off-peak");
+    });
+
+    test("refresh publishes input-only cost, drops stale peak data, leaves beam costless", () => {
+        const { costById } = resolveRates(RATES_LIVE_2026_10_16, liveCatalog());
+        // catalog as published by the failing run: merge-back carried peak_cost
+        // from the era Ollama still had a peak table
+        const stalePeak = new Map([
+            ["deepseek-v4-pro:0813", { input: 2.64, output: 7.92 }],
+            ["deepseek-v4.1-flash", { input: 0.6, output: 2.4 }],
+        ]);
+        const catalog = buildCatalogDoc({
+            modelsHash: "a".repeat(64),
+            specs: [...liveCatalog().values()],
+            costs: costById,
+            peakCosts: stalePeak,
+        });
+        const previousPricing = PricingDocSchema.parse({
+            $schema: "https://example/pricing.schema.json",
+            provider: "ollama-cloud",
+            generated_at: "2026-09-05T10:00:00.000Z",
+            source: "https://ollama.com/pricing",
+            models: { "glm-5.3": { input: 1.4, output: 4.4 } },
+            x_ollama: {
+                peak_window: "Peak pricing applies between 12:00 and 18:00 UTC, Monday to Friday.",
+                models: { "deepseek-v4-pro:0813": { input: 2.64, output: 7.92 } },
+            },
+        });
+        const decision = refreshDecision(previousPricing, catalog, costById, new Map());
+        if (decision.action !== "publish") throw new Error("expected publish");
+        expect(decision.pricing.x_ollama).toBeUndefined();
+        expect(decision.pricing.models["clef:27b"]).toEqual({ input: 0.24 });
+        expect(decision.catalog.provider.models["deepseek-v4.1-flash"]?.x_ollama.peak_cost).toBeUndefined();
+        expect(decision.catalog.provider.models["deepseek-v4-pro:0813"]?.x_ollama.peak_cost).toBeUndefined();
+        expect(decision.catalog.provider.models["beam"]?.cost).toBeUndefined();
+        expect(decision.catalog.provider.models["clef:27b"]?.cost).toEqual({ input: 0.24 });
     });
 });
 

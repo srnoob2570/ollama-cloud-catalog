@@ -28,7 +28,7 @@ const catalog = await loadCatalog();
 if (!catalog) throw new Error("catalog.json missing; run update-catalog first");
 const models = new Map(Object.entries(catalog.provider.models));
 
-const { costById, problems: standardProblems } = resolveRates(extraction.rates, models);
+const { costById, problems: standardProblems, uncovered, offPeak } = resolveRates(extraction.rates, models);
 const { costById: peakCostById, problems: peakProblems } = resolveRates(extraction.peak_rates, models, false);
 const problems = [...standardProblems, ...peakProblems];
 if (problems.length > 0) {
@@ -36,6 +36,15 @@ if (problems.length > 0) {
     for (const problem of problems) console.error(`  - ${problem}`);
     process.exit(1);
 }
+// Uncovered catalog models keep their previous cost, if any: the page is the
+// only pricing source, and it deliberately prices some served models not at
+// all (beam, free promo since 2026-10-16).
+for (const id of uncovered)
+    console.warn(`! catalog model ${id} has no rate on the pricing page; previous cost, if any, stands`);
+// Off-peak mirror rows are verified but not published: the page no longer
+// documents when the discounted rates apply.
+if (offPeak.length > 0)
+    console.warn(`! off-peak rates not published (no time window on the pricing page): ${offPeak.join(", ")}`);
 
 // A refresh with identical rates is not a change: refreshDecision skips the
 // write, repairs a lagging catalog, or publishes both artifacts.

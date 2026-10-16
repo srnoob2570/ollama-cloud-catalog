@@ -77,8 +77,7 @@
                   }
                 },
                 "required": [
-                  "input",
-                  "output"
+                  "input"
                 ]
               },
               "limit": {
@@ -186,8 +185,7 @@
                       }
                     },
                     "required": [
-                      "input",
-                      "output"
+                      "input"
                     ]
                   },
                   "reasoning_options": {

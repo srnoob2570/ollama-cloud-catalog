@@ -12,9 +12,11 @@ import { z } from "zod";
 
 // models.dev cost: US dollars per MILLION tokens (matches ollama.com/pricing's
 // "per million tokens" card 1:1, with no conversion anywhere in the pipeline).
+// output is absent when the page prices input only (decision models, first
+// seen 2026-10-16: clef's Output cell is '-'): absence, never a guess.
 export const CostSchema = z.object({
     input: z.number().positive(),
-    output: z.number().positive(),
+    output: z.number().positive().optional(),
     cache_read: z.number().positive().optional(),
     cache_write: z.number().positive().optional(),
 });
@@ -37,14 +39,7 @@ export const OllamaMetaSchema = z.object({
     parameter_count: z.number().int().positive().optional(),
     // Present only on models the rate card lists under peak pricing
     // (12:00-18:00 UTC Mon-Fri on ollama.com); `cost` stays the standard rate.
-    peak_cost: z
-        .object({
-            input: z.number().positive(),
-            output: z.number().positive(),
-            cache_read: z.number().positive().optional(),
-            cache_write: z.number().positive().optional(),
-        })
-        .optional(),
+    peak_cost: CostSchema.optional(),
     // Reasoning-effort tiers the model accepts (ollama.com/v1 maps
     // reasoning_effort onto its native think level). Not exposed by any Ollama
     // endpoint; confirmed live on 2026-09-12 as the same four tiers for every
@@ -124,7 +119,7 @@ const RateRowsSchema = z.array(
             .positive()
             .nullable()
             .describe("cached input USD per million tokens; null when the cell is '-'"),
-        output: z.number().positive().describe("output USD per million tokens"),
+        output: z.number().positive().nullable().describe("output USD per million tokens; null when the cell is '-'"),
     }),
 );
 

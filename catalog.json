@@ -159,6 +159,40 @@
           ]
         }
       },
+      "deepseek-v4.1-flash:1017": {
+        "attachment": true,
+        "description": "DeepSeek V4.1 Flash model for reasoning and agentic coding",
+        "id": "deepseek-v4.1-flash:1017",
+        "limit": {
+          "context": 1048576,
+          "output": 393216
+        },
+        "modalities": {
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "Deepseek V4.1 Flash 1017",
+        "reasoning": true,
+        "release_date": "2026-09-10",
+        "temperature": true,
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "deepseek_v41",
+          "parameter_count": 763205315794,
+          "quantization": "FP8",
+          "reasoning_options": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
+        }
+      },
       "gemma4:31b": {
         "attachment": true,
         "cost": {
@@ -810,8 +844,8 @@
     "npm": "@ai-sdk/openai-compatible"
   },
   "x_ollama": {
-    "generated_at": "2026-10-17T00:08:18.407Z",
-    "models_hash": "104291a33187365982f200fe53a35827b284fbf3dd83b6f59467092f068f9d37",
+    "generated_at": "2026-10-17T21:20:02.532Z",
+    "models_hash": "2fbfc64aead592ea13895337f0da7a87a8349379592e24f7f6fa31f334c054f7",
     "sources": {
       "models": "https://ollama.com/v1/models",
       "show": "https://ollama.com/api/show"

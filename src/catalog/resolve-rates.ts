@@ -36,6 +36,19 @@ export function resolveRateId(rateName: string, catalogIds: string[]): string | 
     return undefined;
 }
 
+// The card's '-' cells mean different things by model class: a decision
+// model (System One, x_ollama.decision) serves free output and free cache,
+// so its unpriced cells are $0; for anything else an unpriced cell means no
+// rate exists — absence, never a guess.
+const costOf = (rate: RateRow, decision: boolean): Cost =>
+    decision
+        ? { input: rate.input, cache_read: rate.cached_input ?? 0, output: rate.output ?? 0 }
+        : {
+              input: rate.input,
+              ...(rate.cached_input !== null ? { cache_read: rate.cached_input } : {}),
+              ...(rate.output !== null ? { output: rate.output } : {}),
+          };
+
 export function resolveRates(
     rates: RateRow[],
     models: Map<string, Model>,
@@ -60,13 +73,7 @@ export function resolveRates(
             );
             continue;
         }
-        costById.set(id, {
-            input: rate.input,
-            ...(rate.cached_input !== null ? { cache_read: rate.cached_input } : {}),
-            // A '-' output cell (decision models price input only) means no
-            // output rate exists; absence, never a guess.
-            ...(rate.output !== null ? { output: rate.output } : {}),
-        });
+        costById.set(id, costOf(rate, models.get(id)!.x_ollama.decision === true));
     }
 
     // Mirror rows must shadow a standard row of the same model: an off-peak
@@ -82,11 +89,7 @@ export function resolveRates(
             problems.push(`off-peak rate for ${id} has no standard row to mirror`);
             continue;
         }
-        offPeakById.set(id, {
-            input: rate.input,
-            ...(rate.cached_input !== null ? { cache_read: rate.cached_input } : {}),
-            ...(rate.output !== null ? { output: rate.output } : {}),
-        });
+        offPeakById.set(id, costOf(rate, models.get(id)!.x_ollama.decision === true));
     }
 
     if (checkCoverage) for (const id of catalogIds) if (!costById.has(id)) uncovered.push(id);

@@ -231,7 +231,12 @@ describe("live 2026-10-16 rate card", () => {
                     tool_call: false,
                     limit: { context: 202000 },
                     release_date: "2026-08-27",
-                    x_ollama: { quantization: "FP8", ollama_family: "x" },
+                    x_ollama: {
+                        quantization: "FP8",
+                        ollama_family: "x",
+                        // the one cataloged decision model, as /api/show reports it
+                        ...(id === "clef:27b" ? { decision: true } : {}),
+                    },
                 }),
             ]),
         );
@@ -241,15 +246,24 @@ describe("live 2026-10-16 rate card", () => {
         expect(extraction.rates[0]!.output).toBeNull();
     });
 
-    test("resolution: off-peak mirrors verified, beam uncovered, clef cost without output", () => {
+    test("resolution: off-peak mirrors verified, beam uncovered, decision model prices free output", () => {
         const { costById, offPeakById, problems, uncovered } = resolveRates(RATES_LIVE_2026_10_16, liveCatalog());
         expect(problems).toEqual([]);
         expect(uncovered).toEqual(["beam"]);
         expect(offPeakById.get("deepseek-v4.1-flash")).toEqual({ input: 0.15, cache_read: 0.003, output: 0.6 });
         expect(offPeakById.get("deepseek-v4-pro:0813")).toEqual({ input: 0.66, cache_read: 0.022, output: 1.98 });
         expect(costById.size).toBe(20);
-        expect(costById.get("clef:27b")).toEqual({ input: 0.24 });
+        // decision model: the card's '-' cells are free output and free cache
+        expect(costById.get("clef:27b")).toEqual({ input: 0.24, cache_read: 0, output: 0 });
+        // non-decision model with '-' cached: absence, never a guessed 0
+        expect(costById.get("mistral-large-3:675b")).toEqual({ input: 0.5, output: 1.5 });
         expect(costById.get("deepseek-v4.1-flash")).toEqual({ input: 0.3, cache_read: 0.006, output: 1.2 });
+    });
+
+    test("a non-decision model with an unpriced output stays absent, not free", () => {
+        const out = resolveRates([{ model: "glm-5.3", input: 1.4, cached_input: null, output: null }], liveCatalog());
+        expect(out.problems).toEqual([]);
+        expect(out.costById.get("glm-5.3")).toEqual({ input: 1.4 });
     });
 
     test("an off-peak row without a standard row to mirror is fatal", () => {
@@ -296,7 +310,7 @@ describe("live 2026-10-16 rate card", () => {
             cache_read: 0.003,
             output: 0.6,
         });
-        expect(decision.pricing.models["clef:27b"]).toEqual({ input: 0.24 });
+        expect(decision.pricing.models["clef:27b"]).toEqual({ input: 0.24, cache_read: 0, output: 0 });
         expect(decision.catalog.provider.models["deepseek-v4.1-flash"]?.x_ollama.peak_cost).toBeUndefined();
         expect(decision.catalog.provider.models["deepseek-v4-pro:0813"]?.x_ollama.peak_cost).toBeUndefined();
         expect(decision.catalog.provider.models["deepseek-v4.1-flash"]?.x_ollama.off_peak_cost).toEqual({
@@ -310,7 +324,7 @@ describe("live 2026-10-16 rate card", () => {
             output: 1.98,
         });
         expect(decision.catalog.provider.models["beam"]?.cost).toBeUndefined();
-        expect(decision.catalog.provider.models["clef:27b"]?.cost).toEqual({ input: 0.24 });
+        expect(decision.catalog.provider.models["clef:27b"]?.cost).toEqual({ input: 0.24, cache_read: 0, output: 0 });
     });
 });
 
@@ -328,6 +342,7 @@ describe("/api/show mapping", () => {
         expect(model.reasoning).toBe(true);
         expect(model.tool_call).toBe(true);
         expect(model.attachment).toBe(true);
+        expect(model.x_ollama.decision).toBeUndefined();
         expect(model.modalities?.input).toEqual(["text", "image"]);
         expect(model.limit).toEqual({ context: 202000, output: 1048576 });
         expect(model.release_date).toBe("2026-08-27");
@@ -365,6 +380,7 @@ describe("/api/show mapping", () => {
         });
         const model = await fetchModelSpec("clef:27b", impl);
         expect(model.limit).toEqual({ context: 65536 });
+        expect(model.x_ollama.decision).toBe(true);
     });
 });
 

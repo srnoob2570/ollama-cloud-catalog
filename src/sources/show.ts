@@ -106,6 +106,7 @@ export async function fetchModelSpec(id: string, impl: FetchImpl = fetch): Promi
     if (!show.modified_at) throw new Error("modified_at missing");
 
     const vision = capability(show.capabilities, "vision");
+    const decision = capability(show.capabilities, "decision");
     const output = await probeMaxOutput(id, impl);
     const model: Model = {
         id,
@@ -128,6 +129,7 @@ export async function fetchModelSpec(id: string, impl: FetchImpl = fetch): Promi
             // an invented guess.
             quantization: show.details?.quantization_level || "unknown",
             ollama_family: show.details?.family || "unknown",
+            ...(decision ? { decision: true } : {}),
             ...(parameterCountOf(show.model_info) !== undefined
                 ? { parameter_count: parameterCountOf(show.model_info) }
                 : {}),

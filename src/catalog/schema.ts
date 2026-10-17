@@ -12,12 +12,13 @@ import { z } from "zod";
 
 // models.dev cost: US dollars per MILLION tokens (matches ollama.com/pricing's
 // "per million tokens" card 1:1, with no conversion anywhere in the pipeline).
-// output is absent when the page prices input only (decision models, first
-// seen 2026-10-16: clef's Output cell is '-'): absence, never a guess.
+// output/cache_read accept 0: a decision model (System One) serves free
+// output, so the card's '-' cells publish as $0 for it. output is otherwise
+// absent when the page prices input only: absence, never a guess.
 export const CostSchema = z.object({
     input: z.number().positive(),
-    output: z.number().positive().optional(),
-    cache_read: z.number().positive().optional(),
+    output: z.number().nonnegative().optional(),
+    cache_read: z.number().nonnegative().optional(),
     cache_write: z.number().positive().optional(),
 });
 
@@ -37,6 +38,9 @@ export const OllamaMetaSchema = z.object({
     // Omitted when Ollama reports 0. Some servers (minimax-m3) declare
     // nothing, and the canonical answer for no source is absence, not a guess.
     parameter_count: z.number().int().positive().optional(),
+    // True only on decision models (served via /v1/systemone, not /api/chat;
+    // their output tokens are free). Absent means not a decision model.
+    decision: z.boolean().optional(),
     // Present only on models the rate card lists under peak pricing
     // (12:00-18:00 UTC Mon-Fri on ollama.com); `cost` stays the standard rate.
     peak_cost: CostSchema.optional(),

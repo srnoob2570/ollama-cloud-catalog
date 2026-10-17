@@ -65,11 +65,11 @@
                   },
                   "output": {
                     "type": "number",
-                    "exclusiveMinimum": 0
+                    "minimum": 0
                   },
                   "cache_read": {
                     "type": "number",
-                    "exclusiveMinimum": 0
+                    "minimum": 0
                   },
                   "cache_write": {
                     "type": "number",
@@ -164,6 +164,9 @@
                     "exclusiveMinimum": 0,
                     "maximum": 9007199254740991
                   },
+                  "decision": {
+                    "type": "boolean"
+                  },
                   "peak_cost": {
                     "type": "object",
                     "properties": {
@@ -173,11 +176,11 @@
                       },
                       "output": {
                         "type": "number",
-                        "exclusiveMinimum": 0
+                        "minimum": 0
                       },
                       "cache_read": {
                         "type": "number",
-                        "exclusiveMinimum": 0
+                        "minimum": 0
                       },
                       "cache_write": {
                         "type": "number",
@@ -197,11 +200,11 @@
                       },
                       "output": {
                         "type": "number",
-                        "exclusiveMinimum": 0
+                        "minimum": 0
                       },
                       "cache_read": {
                         "type": "number",
-                        "exclusiveMinimum": 0
+                        "minimum": 0
                       },
                       "cache_write": {
                         "type": "number",

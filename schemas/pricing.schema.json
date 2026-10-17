@@ -31,11 +31,11 @@
           },
           "output": {
             "type": "number",
-            "exclusiveMinimum": 0
+            "minimum": 0
           },
           "cache_read": {
             "type": "number",
-            "exclusiveMinimum": 0
+            "minimum": 0
           },
           "cache_write": {
             "type": "number",
@@ -68,11 +68,11 @@
               },
               "output": {
                 "type": "number",
-                "exclusiveMinimum": 0
+                "minimum": 0
               },
               "cache_read": {
                 "type": "number",
-                "exclusiveMinimum": 0
+                "minimum": 0
               },
               "cache_write": {
                 "type": "number",
@@ -102,11 +102,11 @@
               },
               "output": {
                 "type": "number",
-                "exclusiveMinimum": 0
+                "minimum": 0
               },
               "cache_read": {
                 "type": "number",
-                "exclusiveMinimum": 0
+                "minimum": 0
               },
               "cache_write": {
                 "type": "number",

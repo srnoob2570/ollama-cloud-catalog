@@ -153,6 +153,84 @@ export const PRICING_SECTION_OFFPEAK = `<section id="model-pricing">
   </tbody></table>
 </section>`;
 
+// The tag index of /library/deepseek-v4.1-flash/tags (2026-10-17): the "View
+// all" of the ficha's Models section. Both cloud variants, each with two
+// anchors (mobile + desktop share the href) — deduped by href, not text.
+export const TAGS_SECTION_FLASH = `<html><body>
+  <a href="/library/deepseek-v4.1-flash">deepseek-v4.1-flash</a>
+  <a href="/library/deepseek-v4.1-flash/tags">View all</a>
+  <a href="/library/deepseek-v4.1-flash:cloud">deepseek-v4.1-flash:cloud</a>
+  <a href="/library/deepseek-v4.1-flash:cloud">deepseek-v4.1-flash:cloud</a>
+  <a href="/library/deepseek-v4.1-flash:1017-cloud">deepseek-v4.1-flash:1017-cloud</a>
+  <a href="/library/deepseek-v4.1-flash:1017-cloud">deepseek-v4.1-flash:1017-cloud</a>
+</body></html>`;
+
+// The gemma4 tag index (2026-10-17, trimmed to the load-bearing rows): local
+// variants mixed with the cloud ones — the catalog id gemma4:31b must resolve
+// to its cloud page (31b-cloud), never the identically-tagged local 31b.
+export const TAGS_SECTION_GEMMA4 = `<html><body>
+  <a href="/library/gemma4">gemma4</a>
+  <a href="/library/gemma4:latest">gemma4:latest</a>
+  <a href="/library/gemma4:e2b">gemma4:e2b</a>
+  <a href="/library/gemma4:31b">gemma4:31b</a>
+  <a href="/library/gemma4:31b-cloud">gemma4:31b-cloud</a>
+  <a href="/library/gemma4:cloud">gemma4:cloud</a>
+  <a href="/library/gemma4:31b-mlx">gemma4:31b-mlx</a>
+</body></html>`;
+
+// The cost block of /library/deepseek-v4.1-flash:1017-cloud (2026-10-17):
+// Peak/Off-Peak tabs and three labeled cells. data-rate="base" is the listed
+// standard (Peak) rate, data-rate="peak" the Off-Peak column — the page's tab
+// naming. The tab buttons carry data-rate too; only div.pricing-rate cells are
+// data.
+export const MODEL_PAGE_FLASH1017 = `<html><body><div class="pricing-block">
+  <span>Cost</span><span>/1M tokens</span>
+  <div role="tablist" aria-label="Price type">
+    <button type="button" role="tab" data-rate="base" class="pricing-rate-tab">Peak</button>
+    <button type="button" role="tab" data-rate="peak" class="pricing-rate-tab">Off-Peak</button>
+  </div>
+  <div>
+    <div class="flex min-w-0 flex-col gap-1 text-left">
+      <div data-rate="base" class="pricing-rate">$0.30</div>
+      <div data-rate="peak" class="pricing-rate hidden">$0.15</div>
+      <div class="truncate">input</div>
+    </div>
+    <div class="flex min-w-0 flex-col gap-1 text-left">
+      <div data-rate="base" class="pricing-rate">$0.006</div>
+      <div data-rate="peak" class="pricing-rate hidden">$0.003</div>
+      <div class="truncate">cached</div>
+    </div>
+    <div class="flex min-w-0 flex-col gap-1 text-left">
+      <div data-rate="base" class="pricing-rate">$1.20</div>
+      <div data-rate="peak" class="pricing-rate hidden">$0.60</div>
+      <div class="truncate">output</div>
+    </div>
+  </div>
+</div></body></html>`;
+
+// /library/clef:27b-cloud (2026-10-17): a decision model's page prices input
+// only — no tabs, no output cell, because a System One model's output is free.
+export const MODEL_PAGE_CLEF27B = `<html><body><div class="pricing-block">
+  <span>Cost</span><span>/1M tokens</span>
+  <div>
+    <div class="flex min-w-0 flex-col gap-1 text-left">
+      <div data-rate="base" class="pricing-rate">$0.24</div>
+      <div class="truncate">input</div>
+    </div>
+  </div>
+</div></body></html>`;
+
+// /library/beam:cloud (2026-10-17): the free promo's page has no cost block.
+// The switchPricingRate script present on every page names .pricing-rate in
+// its code; the extractor must see no cells in it.
+export const MODEL_PAGE_BEAM_NO_COST = `<html><body><div class="pricing-block">
+  <span>Context</span><span>1M tokens</span>
+</div>
+<script>
+  block.querySelectorAll('.pricing-rate[data-rate]').forEach(el => el.classList.toggle('hidden', el.dataset.rate !== rate));
+</script>
+</body></html>`;
+
 export const MODELS_LIST = {
     object: "list",
     data: [

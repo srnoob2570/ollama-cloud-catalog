@@ -36,7 +36,13 @@ import {
     OFF_PEAK_WINDOW_LIVE,
     RATES_LIVE_2026_10_16,
     LIVE_MODEL_IDS_2026_10_16,
+    TAGS_SECTION_FLASH,
+    TAGS_SECTION_GEMMA4,
+    MODEL_PAGE_FLASH1017,
+    MODEL_PAGE_CLEF27B,
+    MODEL_PAGE_BEAM_NO_COST,
 } from "./fixtures.ts";
+import { cloudNameOf, extractTagIndex, extractModelCost, fetchModelCost } from "../src/sources/model-page.ts";
 
 // Route requests by URL substring: a plain value becomes a 200 JSON
 // Response, a function returns its own Response, a miss throws. Injected
@@ -875,6 +881,137 @@ describe("rate card extraction", () => {
         const extraction = await extractRates(withPeak.standard, withPeak.peak, call as never);
         expect(extraction.rates).toHaveLength(withPeak.standard.rowCount);
         expect(extraction.peak_rates).toHaveLength(withPeak.peak?.rowCount ?? 0);
+    });
+});
+
+describe("model pages (second-chance pricing)", () => {
+    test("cloud page names follow the tag rule: -cloud with a tag, :cloud without", () => {
+        expect(cloudNameOf("beam")).toBe("beam:cloud");
+        expect(cloudNameOf("deepseek-v4.1-flash")).toBe("deepseek-v4.1-flash:cloud");
+        expect(cloudNameOf("deepseek-v4.1-flash:1017")).toBe("deepseek-v4.1-flash:1017-cloud");
+        expect(cloudNameOf("gemma4:31b")).toBe("gemma4:31b-cloud");
+        expect(cloudNameOf("clef:27b")).toBe("clef:27b-cloud");
+    });
+
+    test("tag index maps every variant page and skips nav links", () => {
+        const index = extractTagIndex(TAGS_SECTION_GEMMA4, "gemma4");
+        expect(index.get("gemma4:31b-cloud")).toBe("https://ollama.com/library/gemma4:31b-cloud");
+        expect(index.get("gemma4:cloud")).toBe("https://ollama.com/library/gemma4:cloud");
+        // local variants are listed too — the index holds cloud and non-cloud alike
+        expect(index.get("gemma4:31b")).toBe("https://ollama.com/library/gemma4:31b");
+        expect(index.size).toBe(6);
+    });
+
+    test("the index never leaves the family", () => {
+        const index = extractTagIndex(TAGS_SECTION_GEMMA4, "gemma4");
+        for (const name of index.keys()) expect(name.startsWith("gemma4:")).toBe(true);
+    });
+
+    test("cost block: three cells, standard and off-peak columns", () => {
+        const cost = extractModelCost("deepseek-v4.1-flash:1017", MODEL_PAGE_FLASH1017);
+        expect(cost?.rate).toEqual({
+            model: "deepseek-v4.1-flash:1017",
+            input: 0.3,
+            cached_input: 0.006,
+            output: 1.2,
+        });
+        expect(cost?.offPeakRate).toEqual({
+            model: "deepseek-v4.1-flash:1017 (Off-Peak)",
+            input: 0.15,
+            cached_input: 0.003,
+            output: 0.6,
+        });
+    });
+
+    test("cost block: input-only decision model page", () => {
+        expect(extractModelCost("clef:27b", MODEL_PAGE_CLEF27B)).toEqual({
+            rate: { model: "clef:27b", input: 0.24, cached_input: null, output: null },
+        });
+    });
+
+    test("no cost block means no rate: undefined, not an error", () => {
+        // the switchPricingRate script names .pricing-rate but has no cells
+        expect(extractModelCost("beam", MODEL_PAGE_BEAM_NO_COST)).toBeUndefined();
+    });
+
+    test("an unrecognized cell label fails loud", () => {
+        const html = MODEL_PAGE_FLASH1017.replace(">output<", ">cache_write<");
+        expect(() => extractModelCost("x", html)).toThrow('unrecognized cost cell "cache_write"');
+    });
+
+    test("a partial off-peak column fails loud", () => {
+        const html = MODEL_PAGE_FLASH1017.replace('<div data-rate="peak" class="pricing-rate hidden">$0.60</div>', "");
+        expect(() => extractModelCost("x", html)).toThrow("does not mirror the standard column");
+    });
+
+    test("a cost block without input fails loud", () => {
+        const html = MODEL_PAGE_CLEF27B.replace(">input<", ">output<").replace("$0.24", "$0.10");
+        expect(() => extractModelCost("x", html)).toThrow("prices no positive input");
+    });
+
+    test("fetchModelCost: index then page, priced from the ficha", async () => {
+        const impl = fakeFetch({
+            "deepseek-v4.1-flash/tags": () => new Response(TAGS_SECTION_FLASH, { status: 200 }),
+            "deepseek-v4.1-flash:1017-cloud": () => new Response(MODEL_PAGE_FLASH1017, { status: 200 }),
+        });
+        const cost = await fetchModelCost("deepseek-v4.1-flash:1017", impl);
+        expect(cost?.rate.input).toBe(0.3);
+        expect(cost?.offPeakRate?.input).toBe(0.15);
+    });
+
+    test("fetchModelCost: a family with no page is absence, not failure", async () => {
+        const impl = fakeFetch({ "who-dis/tags": () => new Response("not found", { status: 404 }) });
+        expect(await fetchModelCost("who-dis", impl)).toBeUndefined();
+    });
+
+    test("fetchModelCost: a cloud variant the index does not list is absence", async () => {
+        const impl = fakeFetch({ "deepseek-v4.1-flash/tags": () => new Response(TAGS_SECTION_FLASH, { status: 200 }) });
+        // no route for the variant page: absence must not fetch it
+        expect(await fetchModelCost("deepseek-v4.1-flash:9999", impl)).toBeUndefined();
+    });
+
+    test("fetchModelCost: an index-linked page that fails aborts", async () => {
+        const impl = fakeFetch({
+            "deepseek-v4.1-flash/tags": () => new Response(TAGS_SECTION_FLASH, { status: 200 }),
+            "deepseek-v4.1-flash:1017-cloud": () => new Response("boom", { status: 500 }),
+        });
+        await expect(fetchModelCost("deepseek-v4.1-flash:1017", impl)).rejects.toThrow("returned HTTP 500");
+    });
+
+    test("ficha rates resolve through the standard machinery", () => {
+        const spec = (id: string, decision = false) =>
+            ModelSchema.parse({
+                id,
+                name: id,
+                attachment: false,
+                reasoning: false,
+                tool_call: false,
+                limit: { context: 202000 },
+                release_date: "2026-08-27",
+                x_ollama: { quantization: "FP8", ollama_family: "x", ...(decision ? { decision: true } : {}) },
+            });
+        const models = new Map([
+            ["clef:27b", spec("clef:27b", true)],
+            ["deepseek-v4.1-flash:1017", spec("deepseek-v4.1-flash:1017")],
+        ]);
+        const flash = extractModelCost("deepseek-v4.1-flash:1017", MODEL_PAGE_FLASH1017)!;
+        const clef = extractModelCost("clef:27b", MODEL_PAGE_CLEF27B)!;
+        const rows = [clef.rate, flash.rate, ...(flash.offPeakRate ? [flash.offPeakRate] : [])];
+        const out = resolveRates(rows, models, false);
+        expect(out.problems).toEqual([]);
+        // decision model: the ficha's input-only block still prices free output/cache as $0
+        expect(out.costById.get("clef:27b")).toEqual({ input: 0.24, cache_read: 0, output: 0 });
+        expect(out.costById.get("deepseek-v4.1-flash:1017")).toEqual({
+            input: 0.3,
+            cache_read: 0.006,
+            output: 1.2,
+        });
+        // the ficha's off-peak column mirrors, exactly like a card mirror row
+        expect(out.offPeakById.get("deepseek-v4.1-flash:1017")).toEqual({
+            input: 0.15,
+            cache_read: 0.003,
+            output: 0.6,
+        });
     });
 });
 

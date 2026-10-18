@@ -1,9 +1,11 @@
 {
   "$schema": "https://raw.githubusercontent.com/srnoob2570/ollama-cloud-catalog/main/schemas/pricing.schema.json",
-  "generated_at": "2026-10-17T00:08:35.267Z",
+  "generated_at": "2026-10-18T02:19:49.153Z",
   "models": {
     "clef:27b": {
-      "input": 0.24
+      "cache_read": 0,
+      "input": 0.24,
+      "output": 0
     },
     "deepseek-v4-pro:0813": {
       "cache_read": 0.044,

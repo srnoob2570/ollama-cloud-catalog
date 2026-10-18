@@ -41,7 +41,9 @@
       "clef:27b": {
         "attachment": true,
         "cost": {
-          "input": 0.24
+          "cache_read": 0,
+          "input": 0.24,
+          "output": 0
         },
         "id": "clef:27b",
         "limit": {
@@ -61,6 +63,7 @@
         "release_date": "2026-10-04",
         "tool_call": false,
         "x_ollama": {
+          "decision": true,
           "ollama_family": "qwen35",
           "parameter_count": 27356728560,
           "quantization": "BF16",
@@ -161,7 +164,7 @@
       },
       "deepseek-v4.1-flash:1017": {
         "attachment": true,
-        "description": "DeepSeek V4.1 Flash model for reasoning and agentic coding",
+        "description": "October 17 update of DeepSeek V4.1 Flash with improved reasoning, coding, agentic tasks, and visual understanding",
         "id": "deepseek-v4.1-flash:1017",
         "limit": {
           "context": 1048576,
@@ -844,7 +847,7 @@
     "npm": "@ai-sdk/openai-compatible"
   },
   "x_ollama": {
-    "generated_at": "2026-10-17T21:20:02.532Z",
+    "generated_at": "2026-10-18T02:19:29.394Z",
     "models_hash": "2fbfc64aead592ea13895337f0da7a87a8349379592e24f7f6fa31f334c054f7",
     "sources": {
       "models": "https://ollama.com/v1/models",

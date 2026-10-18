@@ -847,7 +847,7 @@
     "npm": "@ai-sdk/openai-compatible"
   },
   "x_ollama": {
-    "generated_at": "2026-10-18T02:19:29.394Z",
+    "generated_at": "2026-10-18T02:22:32.730Z",
     "models_hash": "2fbfc64aead592ea13895337f0da7a87a8349379592e24f7f6fa31f334c054f7",
     "sources": {
       "models": "https://ollama.com/v1/models",

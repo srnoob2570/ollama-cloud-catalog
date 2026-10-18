@@ -164,6 +164,11 @@
       },
       "deepseek-v4.1-flash:1017": {
         "attachment": true,
+        "cost": {
+          "cache_read": 0.006,
+          "input": 0.3,
+          "output": 1.2
+        },
         "description": "October 17 update of DeepSeek V4.1 Flash with improved reasoning, coding, agentic tasks, and visual understanding",
         "id": "deepseek-v4.1-flash:1017",
         "limit": {
@@ -185,6 +190,11 @@
         "temperature": true,
         "tool_call": true,
         "x_ollama": {
+          "off_peak_cost": {
+            "cache_read": 0.003,
+            "input": 0.15,
+            "output": 0.6
+          },
           "ollama_family": "deepseek_v41",
           "parameter_count": 763205315794,
           "quantization": "FP8",

@@ -624,6 +624,38 @@
           ]
         }
       },
+      "minimax-m3.1-flash": {
+        "attachment": true,
+        "id": "minimax-m3.1-flash",
+        "limit": {
+          "context": 1000000,
+          "output": 524288
+        },
+        "modalities": {
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "Minimax M3.1 Flash",
+        "reasoning": true,
+        "release_date": "2026-10-19",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "minimax-m3",
+          "parameter_count": 428000000000,
+          "quantization": "unknown",
+          "reasoning_options": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
+        }
+      },
       "mistral-large-3:675b": {
         "attachment": true,
         "cost": {
@@ -857,8 +889,8 @@
     "npm": "@ai-sdk/openai-compatible"
   },
   "x_ollama": {
-    "generated_at": "2026-10-19T05:00:02.947Z",
-    "models_hash": "2fbfc64aead592ea13895337f0da7a87a8349379592e24f7f6fa31f334c054f7",
+    "generated_at": "2026-10-19T14:40:02.637Z",
+    "models_hash": "e92a9215c9871339c977acfd3a40b5277a3bf2d18f0ae8ae19aa865d0ace0faf",
     "sources": {
       "models": "https://ollama.com/v1/models",
       "show": "https://ollama.com/api/show"

@@ -626,6 +626,11 @@
       },
       "minimax-m3.1-flash": {
         "attachment": true,
+        "cost": {
+          "cache_read": 0.015,
+          "input": 0.15,
+          "output": 0.6
+        },
         "id": "minimax-m3.1-flash",
         "limit": {
           "context": 1000000,

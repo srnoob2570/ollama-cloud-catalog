@@ -9,6 +9,7 @@
     "models": {
       "beam": {
         "attachment": false,
+        "description": "Sparse mixture-of-experts reasoning model with 23B active parameters for coding and agentic workflows",
         "id": "beam",
         "limit": {
           "context": 1048576,
@@ -25,6 +26,7 @@
         "name": "Beam",
         "reasoning": true,
         "release_date": "2026-10-16",
+        "temperature": true,
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "beam",
@@ -231,6 +233,7 @@
         "name": "Gemma4 31B",
         "reasoning": true,
         "release_date": "2026-04-02",
+        "temperature": true,
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "gemma4",
@@ -383,6 +386,7 @@
         "name": "GPT OSS 120B",
         "reasoning": true,
         "release_date": "2025-08-05",
+        "temperature": true,
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "gptoss",
@@ -420,6 +424,7 @@
         "name": "GPT OSS 20B",
         "reasoning": true,
         "release_date": "2025-08-05",
+        "temperature": true,
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "gptoss",
@@ -458,6 +463,7 @@
         "name": "Kimi K2.6",
         "reasoning": true,
         "release_date": "2026-04-20",
+        "temperature": true,
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "kimi-k2",
@@ -573,6 +579,7 @@
         "name": "Minimax M2.7",
         "reasoning": true,
         "release_date": "2026-03-18",
+        "temperature": true,
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "minimax-m2",
@@ -649,7 +656,7 @@
         "name": "Minimax M3.1 Flash",
         "reasoning": true,
         "release_date": "2026-10-19",
-        "temperature": false,
+        "temperature": true,
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "minimax-m3",
@@ -687,6 +694,7 @@
         "name": "Mistral Large 3 675B",
         "reasoning": false,
         "release_date": "2025-12-02",
+        "temperature": true,
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "mistral3",
@@ -896,7 +904,7 @@
     "npm": "@ai-sdk/openai-compatible"
   },
   "x_ollama": {
-    "generated_at": "2026-10-19T16:50:02.834Z",
+    "generated_at": "2026-10-26T05:00:02.655Z",
     "models_hash": "daf8062ce5a1ce08806e68c614e496443a85ffc612007e0c1308329bf2c30b2a",
     "sources": {
       "models": "https://ollama.com/v1/models",

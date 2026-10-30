@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/srnoob2570/ollama-cloud-catalog/main/schemas/pricing.schema.json",
-  "generated_at": "2026-10-19T14:40:12.882Z",
+  "generated_at": "2026-10-30T21:20:11.300Z",
   "models": {
     "clef:27b": {
       "cache_read": 0,
@@ -67,6 +67,16 @@
       "input": 3,
       "output": 15
     },
+    "mimo-v2.6-flash": {
+      "cache_read": 0.0028,
+      "input": 0.14,
+      "output": 0.28
+    },
+    "mimo-v2.6-pro": {
+      "cache_read": 0.0036,
+      "input": 0.435,
+      "output": 0.87
+    },
     "minimax-m2.7": {
       "cache_read": 0.06,
       "input": 0.3,
@@ -88,8 +98,8 @@
     },
     "mistral-large-4": {
       "cache_read": 0.07,
-      "input": 0.68,
-      "output": 2.09
+      "input": 0.7,
+      "output": 2.1
     },
     "muse-spark-open": {
       "cache_read": 0.15,

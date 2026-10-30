@@ -557,6 +557,11 @@
       },
       "mimo-v2.6-flash": {
         "attachment": true,
+        "cost": {
+          "cache_read": 0.0028,
+          "input": 0.14,
+          "output": 0.28
+        },
         "id": "mimo-v2.6-flash",
         "limit": {
           "context": 1048576,
@@ -589,6 +594,11 @@
       },
       "mimo-v2.6-pro": {
         "attachment": true,
+        "cost": {
+          "cache_read": 0.0036,
+          "input": 0.435,
+          "output": 0.87
+        },
         "id": "mimo-v2.6-pro",
         "limit": {
           "context": 1048576,
@@ -776,8 +786,8 @@
         "attachment": true,
         "cost": {
           "cache_read": 0.07,
-          "input": 0.68,
-          "output": 2.09
+          "input": 0.7,
+          "output": 2.1
         },
         "description": "Mistral's 1T-parameter multimodal MoE for reasoning, coding, and agentic work",
         "id": "mistral-large-4",

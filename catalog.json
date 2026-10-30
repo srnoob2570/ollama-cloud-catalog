@@ -555,6 +555,70 @@
           ]
         }
       },
+      "mimo-v2.6-flash": {
+        "attachment": true,
+        "id": "mimo-v2.6-flash",
+        "limit": {
+          "context": 1048576,
+          "output": 131072
+        },
+        "modalities": {
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "Mimo V2.6 Flash",
+        "reasoning": true,
+        "release_date": "2026-09-22",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "mimo_v2",
+          "parameter_count": 161448877510,
+          "quantization": "FP8",
+          "reasoning_options": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
+        }
+      },
+      "mimo-v2.6-pro": {
+        "attachment": true,
+        "id": "mimo-v2.6-pro",
+        "limit": {
+          "context": 1048576,
+          "output": 131072
+        },
+        "modalities": {
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "Mimo V2.6 Pro",
+        "reasoning": true,
+        "release_date": "2026-09-22",
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "mimo_v2",
+          "parameter_count": 527511760006,
+          "quantization": "FP8",
+          "reasoning_options": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
+        }
+      },
       "minimax-m2.7": {
         "attachment": false,
         "cost": {
@@ -904,8 +968,8 @@
     "npm": "@ai-sdk/openai-compatible"
   },
   "x_ollama": {
-    "generated_at": "2026-10-26T05:00:02.655Z",
-    "models_hash": "daf8062ce5a1ce08806e68c614e496443a85ffc612007e0c1308329bf2c30b2a",
+    "generated_at": "2026-10-30T21:20:02.835Z",
+    "models_hash": "0a67a122241e1a39cd945fcc28a00a61130bc514149d571d2f6b66639eb61c86",
     "sources": {
       "models": "https://ollama.com/v1/models",
       "show": "https://ollama.com/api/show"

@@ -562,6 +562,7 @@
           "input": 0.14,
           "output": 0.28
         },
+        "description": "MiMo Flash model for multimodal coding agents and long-context automation",
         "id": "mimo-v2.6-flash",
         "limit": {
           "context": 1048576,
@@ -579,6 +580,7 @@
         "name": "Mimo V2.6 Flash",
         "reasoning": true,
         "release_date": "2026-09-22",
+        "temperature": true,
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "mimo_v2",
@@ -599,6 +601,7 @@
           "input": 0.435,
           "output": 0.87
         },
+        "description": "Stronger MiMo Pro tier for multimodal reasoning and coding-agent execution",
         "id": "mimo-v2.6-pro",
         "limit": {
           "context": 1048576,
@@ -616,6 +619,7 @@
         "name": "Mimo V2.6 Pro",
         "reasoning": true,
         "release_date": "2026-09-22",
+        "temperature": true,
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "mimo_v2",
@@ -978,7 +982,7 @@
     "npm": "@ai-sdk/openai-compatible"
   },
   "x_ollama": {
-    "generated_at": "2026-10-30T21:20:02.835Z",
+    "generated_at": "2026-11-02T05:00:02.890Z",
     "models_hash": "0a67a122241e1a39cd945fcc28a00a61130bc514149d571d2f6b66639eb61c86",
     "sources": {
       "models": "https://ollama.com/v1/models",

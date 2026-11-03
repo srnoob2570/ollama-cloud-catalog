@@ -982,7 +982,7 @@
     "npm": "@ai-sdk/openai-compatible"
   },
   "x_ollama": {
-    "generated_at": "2026-11-02T05:00:02.890Z",
+    "generated_at": "2026-11-03T07:26:30.217Z",
     "models_hash": "0a67a122241e1a39cd945fcc28a00a61130bc514149d571d2f6b66639eb61c86",
     "sources": {
       "models": "https://ollama.com/v1/models",

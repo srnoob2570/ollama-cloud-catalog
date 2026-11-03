@@ -489,7 +489,7 @@ describe("extractJson transport contract", () => {
             const { url, init } = requests[0]!;
             expect(url).toBe(geminiUrl);
             const body = JSON.parse(String(init!.body));
-            expect(body.model).toBe("gemini-3.8-flash");
+            expect(body.model).toBe("gemini-3.5-flash-lite");
             expect(body.stream).toBe(false);
             expect(body.temperature).toBe(0);
             expect(body.response_format.type).toBe("json_schema");
@@ -575,7 +575,7 @@ describe("extractJson transport contract", () => {
                 })) as unknown as typeof fetch;
             const error = await extractJson(RateCardExtractionSchema, "i", "u", { impl }).catch((err) => err);
             expect(error).toBeInstanceOf(AggregateError);
-            expect((error as AggregateError).message).toContain("gemini-3.8-flash");
+            expect((error as AggregateError).message).toContain("gemini-3.5-flash-lite");
             expect((error as AggregateError).message).toContain("reflection/beam-free");
             expect((error as AggregateError).errors).toHaveLength(2);
         }),

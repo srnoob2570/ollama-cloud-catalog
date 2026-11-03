@@ -9,7 +9,7 @@ import { fetchResponse, type FetchImpl } from "../lib/http.ts";
 import { z } from "zod";
 
 const DEFAULT_PRIMARY_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai";
-const DEFAULT_PRIMARY_MODEL = "gemini-3.8-flash";
+const DEFAULT_PRIMARY_MODEL = "gemini-3.5-flash-lite";
 const DEFAULT_PRIMARY_FORMAT = "json_schema";
 const DEFAULT_FALLBACK_BASE_URL = "https://ai-gateway.kilo.ai/api/v1";
 const DEFAULT_FALLBACK_MODEL = "reflection/beam-free";

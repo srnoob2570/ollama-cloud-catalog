@@ -21,10 +21,12 @@ key. Kilo's gateway, by contrast, serves its `:free` models anonymously.
 Extraction uses an ordered, env-configurable chain of OpenAI-compatible chat
 completions endpoints:
 
-1. **Gemini 3.8 Flash** via `https://generativelanguage.googleapis.com/v1beta/openai`
+1. **Gemini 3.5 Flash-Lite** via `https://generativelanguage.googleapis.com/v1beta/openai`
    with `GEMINI_API_KEY`. It is on Google's free tier, follows the JSON
-   contract well, and is a much stronger model than the old extraction call
-   needs.
+   contract well, and extracted the live 25-row card in ~3.4s.
+   (`gemini-3.8-flash` and `gemini-3.6-flash` were both returning 503
+   high-demand on 2026-11-03; the Kilo fallback caught a 3.6 Flash 503 during
+   the full pipeline run.)
 2. **Kilo `reflection/beam-free`** via `https://ai-gateway.kilo.ai/api/v1`,
    anonymously (no key), as the fallback. It was validated against the live
    25-row rate card and returned every row.

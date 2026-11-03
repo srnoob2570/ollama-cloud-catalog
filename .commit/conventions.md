@@ -36,6 +36,10 @@
 - Pricing extraction needs `GEMINI_API_KEY` (`pricing`, and `update` because it
   may chain pricing); `OLLAMA_API_KEY` still gates `update`/`force` through the
   output-limit probe in `src/sources/show.ts`.
+- Gemini 3.8 Flash and 3.6 Flash returned 503 high-demand during the
+  2026-11-03 migration; the default extraction model is
+  `gemini-3.5-flash-lite`, which extracted the live 25-row card in ~3.4s.
+  Override with `EXTRACT_PRIMARY_MODEL` if it degrades.
 
 ## Preferences
 

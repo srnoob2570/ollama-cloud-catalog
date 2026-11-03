@@ -29,7 +29,7 @@ capability changes that do not move the model-list hash. Details in
 | Job | Schedule (UTC) | What it does |
 |---|---|---|
 | `run-pipeline update` | every 10 minutes | Hash-gates on `/v1/models`; scrapes specs only on change (or weekly staleness), then chains `pricing` when it published a new catalog |
-| `run-pipeline pricing` | Mondays 06:00 | Scrapes the rate card with Gemini 3.8 Flash (Kilo free pool as fallback) |
+| `run-pipeline pricing` | Mondays 06:00 | Scrapes the rate card with Gemini 3.5 Flash-Lite (Kilo free pool as fallback) |
 | `run-pipeline force` | Mondays 05:00 | `--force` spec re-extraction when Ollama quietly upgrades a model |
 | `run-pipeline check` | manual | Read-only diagnostic: is the catalog current? |
 
@@ -48,13 +48,13 @@ Sources, in order of trust:
    the probe costs no tokens:
    `"max_tokens (...) exceeds model's maximum output tokens (1048576) ..."`.
 4. `ollama.com/pricing`. Cheerio pre-extracts `section#model-pricing`, then
-   Gemini 3.8 Flash extracts the rate rows through the OpenAI-compatible
+   Gemini 3.5 Flash-Lite extracts the rate rows through the OpenAI-compatible
    endpoint, with Kilo's free pool as fallback. The zod-derived JSON schema
    rides in the prompt and, when the provider accepts it, in `response_format`.
    Rows link `/library/<id>`, so ids come straight from the page.
 
 The extraction chain is one attempt per model, in order: `EXTRACT_PRIMARY_*`
-(defaults to Gemini `gemini-3.8-flash`) then `EXTRACT_FALLBACK_*` (defaults to
+(defaults to Gemini `gemini-3.5-flash-lite`) then `EXTRACT_FALLBACK_*` (defaults to
 Kilo `reflection/beam-free`, anonymous). A failure or an incomplete extraction
 moves to the next model; if all fail, the run aborts. See
 `docs/adr/0006-gemini-free-extraction.md`.

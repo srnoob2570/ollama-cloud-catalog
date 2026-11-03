@@ -1,5 +1,5 @@
 // update-pricing: scrape ollama.com/pricing, extract the rate cards with
-// Gemini 3.8 Flash via its OpenAI-compatible endpoint (Kilo's free pool as
+// Gemini 3.5 Flash-Lite via its OpenAI-compatible endpoint (Kilo's free pool as
 // fallback; zod validation), then refresh cost in catalog.json and publish
 // pricing.json. DOM row counts are ground truth
 // for completeness; any coverage problem aborts before writing.

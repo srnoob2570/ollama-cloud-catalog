@@ -115,8 +115,9 @@ export const PricingDocSchema = z.object({
         .optional(),
 });
 
-// The extraction contract handed to the LLM (glm-5.3-flash via Ollama Cloud,
-// JSON mode): the standard rate card rows plus the peak-pricing rows (empty
+// The extraction contract handed to the LLM (Gemini 3.8 Flash via its
+// OpenAI-compatible endpoint, Kilo's free pool as fallback): the standard rate
+// card rows plus the peak-pricing rows (empty
 // when the page has no peak table). Anchors and money-string parsing are the
 // LLM's job; ours is validating the shape, the per-table row counts and the
 // catalog coverage.

@@ -1,6 +1,7 @@
 // update-pricing: scrape ollama.com/pricing, extract the rate cards with
-// glm-5.3-flash (JSON mode + zod validation), then refresh cost in
-// catalog.json and publish pricing.json. DOM row counts are ground truth
+// Gemini 3.8 Flash via its OpenAI-compatible endpoint (Kilo's free pool as
+// fallback; zod validation), then refresh cost in catalog.json and publish
+// pricing.json. DOM row counts are ground truth
 // for completeness; any coverage problem aborts before writing.
 // Models the card leaves uncovered get one more chance on their own
 // ollama.com page (src/sources/model-page.ts): a tagged variant the

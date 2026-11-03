@@ -18,7 +18,9 @@ export async function fetchResponse(
             "user-agent": "ollama-cloud-catalog",
             ...init?.headers,
         },
-        signal: AbortSignal.timeout(30_000),
+        // A caller with a longer deadline (LLM extraction) supplies its own
+        // signal; everything else keeps the tight 30s transport timeout.
+        signal: init?.signal ?? AbortSignal.timeout(30_000),
     });
     return { status: res.status, text: await res.text() };
 }

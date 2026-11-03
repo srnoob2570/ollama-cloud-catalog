@@ -29,6 +29,13 @@
 - `bunx prettier --check README.md` fails on the pristine tree (pre-existing;
   markdown is outside the hook's ts/tsx net). Do not "fix" it inside an
   unrelated commit.
+- `extractJson` tests must clear `GEMINI_API_KEY`, `KILO_API_KEY` and the
+  `EXTRACT_*` overrides before each case: Bun loads `.env`, and a developer's
+  real key would otherwise leak into the request assertions. The provider
+  chain is read at call time, so tests can set env per case.
+- Pricing extraction needs `GEMINI_API_KEY` (`pricing`, and `update` because it
+  may chain pricing); `OLLAMA_API_KEY` still gates `update`/`force` through the
+  output-limit probe in `src/sources/show.ts`.
 
 ## Preferences
 

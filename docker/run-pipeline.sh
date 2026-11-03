@@ -11,8 +11,13 @@ case "$MODE" in
 esac
 
 : "${GITHUB_TOKEN:?GITHUB_TOKEN is required}"
-if [[ "$MODE" != "check" ]]; then
+# The pricing extraction needs Gemini; the spec sweep still needs Ollama for
+# its output-limit probe. `pricing` no longer needs an Ollama key.
+if [[ "$MODE" == "update" || "$MODE" == "force" ]]; then
     : "${OLLAMA_API_KEY:?OLLAMA_API_KEY is required}"
+fi
+if [[ "$MODE" == "update" || "$MODE" == "pricing" ]]; then
+    : "${GEMINI_API_KEY:?GEMINI_API_KEY is required}"
 fi
 
 REMOTE="https://x-access-token@github.com/srnoob2570/ollama-cloud-catalog.git"

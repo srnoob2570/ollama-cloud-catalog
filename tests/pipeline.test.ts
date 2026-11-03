@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { z } from "zod";
 import { extractPricingSection, extractPricingTables } from "../src/sources/pricing-page.ts";
 import { seedEntry, seedEntryOf, type SeedEntry } from "../src/sources/models-dev.ts";
 import { fetchAllSpecs, fetchModelSpec } from "../src/sources/show.ts";
@@ -440,73 +439,172 @@ describe("fetchAllSpecs fallback matrix", () => {
 });
 
 describe("extractJson transport contract", () => {
-    const KEY = process.env.OLLAMA_API_KEY;
-    const withKey = (fn: () => Promise<void>) => async () => {
-        process.env.OLLAMA_API_KEY = "test-key";
-        try {
-            await fn();
-        } finally {
-            if (KEY === undefined) delete process.env.OLLAMA_API_KEY;
-            else process.env.OLLAMA_API_KEY = KEY;
-        }
+    const ENV_KEYS = [
+        "GEMINI_API_KEY",
+        "KILO_API_KEY",
+        "EXTRACT_PRIMARY_BASE_URL",
+        "EXTRACT_PRIMARY_MODEL",
+        "EXTRACT_PRIMARY_FORMAT",
+        "EXTRACT_FALLBACK_BASE_URL",
+        "EXTRACT_FALLBACK_MODEL",
+        "EXTRACT_FALLBACK_FORMAT",
+        "EXTRACT_TIMEOUT_MS",
+    ] as const;
+
+    // Tests own every env var the chain reads: a developer's real .env must
+    // never leak into a request assertion, and each test starts from defaults.
+    const resetEnv = () => {
+        for (const key of ENV_KEYS) delete process.env[key];
     };
+    const withEnv =
+        (values: Partial<Record<(typeof ENV_KEYS)[number], string>>, fn: () => Promise<void>) => async () => {
+            resetEnv();
+            for (const [key, value] of Object.entries(values)) process.env[key] = value;
+            try {
+                await fn();
+            } finally {
+                resetEnv();
+            }
+        };
+
+    const RATE = { model: "glm-5.3", input: 1, cached_input: 0.5, output: 2 };
+    const reply = (content: unknown) =>
+        new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(content) } }] }), {
+            status: 200,
+        });
+    const geminiUrl = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+    const kiloUrl = "https://ai-gateway.kilo.ai/api/v1/chat/completions";
 
     test(
-        "sends the structured-output contract and parses the reply",
-        withKey(async () => {
+        "sends the Gemini json_schema contract and parses the reply",
+        withEnv({ GEMINI_API_KEY: "test-gemini" }, async () => {
             const requests: { url: string; init: RequestInit | undefined }[] = [];
             const impl = (async (input: RequestInfo | URL, init?: RequestInit) => {
                 requests.push({ url: String(input), init });
-                return new Response(
-                    JSON.stringify({
-                        message: {
-                            content: JSON.stringify({
-                                rates: [{ model: "glm-5.3", input: 1, cached_input: 0.5, output: 2 }],
-                                peak_rates: [],
-                            }),
-                        },
-                    }),
-                    { status: 200 },
-                );
+                return reply({ rates: [RATE], peak_rates: [] });
             }) as typeof fetch;
-            const out = await extractJson(RateCardExtractionSchema, "INSTRUCTIONS", "USER", impl);
+            const out = await extractJson(RateCardExtractionSchema, "INSTRUCTIONS", "USER", { impl });
             expect(out.rates).toHaveLength(1);
             expect(requests).toHaveLength(1);
             const { url, init } = requests[0]!;
-            expect(url).toBe("https://ollama.com:443/api/chat");
+            expect(url).toBe(geminiUrl);
             const body = JSON.parse(String(init!.body));
-            expect(body.format).toEqual(z.toJSONSchema(RateCardExtractionSchema, { target: "draft-7", io: "input" }));
+            expect(body.model).toBe("gemini-3.8-flash");
             expect(body.stream).toBe(false);
-            expect(body.options.temperature).toBe(0);
+            expect(body.temperature).toBe(0);
+            expect(body.response_format.type).toBe("json_schema");
+            const schema = body.response_format.json_schema.schema;
+            // The strict copy must be accepted by providers that reject these
+            // keywords; zod still enforces the original constraints.
+            expect(JSON.stringify(schema)).not.toContain("exclusiveMinimum");
+            expect(schema.properties.rates.items.additionalProperties).toBe(false);
             const system = body.messages[0].content as string;
             expect(system.startsWith("INSTRUCTIONS\n")).toBe(true);
             expect(system).toContain("JSON Schema");
             expect(body.messages[1].content).toBe("USER");
             const headers = init!.headers as Record<string, string>;
-            expect(headers.Authorization ?? headers.authorization).toBe("Bearer test-key");
+            expect(headers.authorization).toBe("Bearer test-gemini");
+            expect(init!.signal).toBeDefined();
         }),
     );
 
     test(
-        "missing OLLAMA_API_KEY aborts without a request",
-        withKey(async () => {
-            delete process.env.OLLAMA_API_KEY;
-            const impl = fakeFetch({});
-            await expect(extractJson(RateCardExtractionSchema, "i", "u", impl)).rejects.toThrow(
-                "OLLAMA_API_KEY is not set",
+        "missing GEMINI_API_KEY aborts before any request",
+        withEnv({}, async () => {
+            let calls = 0;
+            const impl = (async () => {
+                calls++;
+                return reply({ rates: [RATE], peak_rates: [] });
+            }) as unknown as typeof fetch;
+            await expect(extractJson(RateCardExtractionSchema, "i", "u", { impl })).rejects.toThrow(
+                "GEMINI_API_KEY is not set",
             );
-            process.env.OLLAMA_API_KEY = "test-key";
+            expect(calls).toBe(0);
         }),
     );
 
     test(
-        "an off-contract reply aborts",
-        withKey(async () => {
-            const impl = fakeFetch({
-                "/api/chat": () => new Response(JSON.stringify({ message: { content: "not json" } }), { status: 200 }),
-            });
-            await expect(extractJson(RateCardExtractionSchema, "i", "u", impl)).rejects.toThrow();
+        "an HTTP failure falls back to Kilo without a key",
+        withEnv({ GEMINI_API_KEY: "test-gemini" }, async () => {
+            const requests: { url: string; init: RequestInit | undefined }[] = [];
+            const impl = (async (input: RequestInfo | URL, init?: RequestInit) => {
+                requests.push({ url: String(input), init });
+                return requests.length === 1
+                    ? new Response("upstream boom", { status: 500 })
+                    : reply({ rates: [RATE], peak_rates: [] });
+            }) as typeof fetch;
+            const out = await extractJson(RateCardExtractionSchema, "i", "u", { impl });
+            expect(out.rates).toHaveLength(1);
+            expect(requests.map((request) => request.url)).toEqual([geminiUrl, kiloUrl]);
+            const fallbackBody = JSON.parse(String(requests[1]!.init!.body));
+            expect(fallbackBody.model).toBe("reflection/beam-free");
+            expect(fallbackBody.response_format).toEqual({ type: "json_object" });
+            const fallbackHeaders = requests[1]!.init!.headers as Record<string, string>;
+            expect(fallbackHeaders.authorization).toBeUndefined();
         }),
+    );
+
+    test(
+        "an incomplete extraction triggers the fallback through the check hook",
+        withEnv({ GEMINI_API_KEY: "test-gemini" }, async () => {
+            let calls = 0;
+            const impl = (async () => {
+                calls++;
+                return reply({
+                    rates: calls === 1 ? [RATE] : [RATE, { ...RATE, model: "glm-5.2" }],
+                    peak_rates: [],
+                });
+            }) as unknown as typeof fetch;
+            const out = await extractJson(RateCardExtractionSchema, "i", "u", {
+                impl,
+                check: (value) => {
+                    if (value.rates.length !== 2) throw new Error("incomplete");
+                },
+            });
+            expect(out.rates).toHaveLength(2);
+            expect(calls).toBe(2);
+        }),
+    );
+
+    test(
+        "an off-contract reply falls back, and all failures name both models",
+        withEnv({ GEMINI_API_KEY: "test-gemini" }, async () => {
+            const impl = (async () =>
+                new Response(JSON.stringify({ choices: [{ message: { content: "not json" } }] }), {
+                    status: 200,
+                })) as unknown as typeof fetch;
+            const error = await extractJson(RateCardExtractionSchema, "i", "u", { impl }).catch((err) => err);
+            expect(error).toBeInstanceOf(AggregateError);
+            expect((error as AggregateError).message).toContain("gemini-3.8-flash");
+            expect((error as AggregateError).message).toContain("reflection/beam-free");
+            expect((error as AggregateError).errors).toHaveLength(2);
+        }),
+    );
+
+    test(
+        "the chain is env-configurable and can be cut to one attempt",
+        withEnv(
+            {
+                EXTRACT_PRIMARY_BASE_URL: "https://example.test/v1",
+                EXTRACT_PRIMARY_MODEL: "custom-model",
+                EXTRACT_PRIMARY_FORMAT: "none",
+                EXTRACT_FALLBACK_MODEL: "off",
+            },
+            async () => {
+                const requests: { url: string; init: RequestInit | undefined }[] = [];
+                const impl = (async (input: RequestInfo | URL, init?: RequestInit) => {
+                    requests.push({ url: String(input), init });
+                    return reply({ rates: [RATE], peak_rates: [] });
+                }) as typeof fetch;
+                await extractJson(RateCardExtractionSchema, "i", "u", { impl });
+                expect(requests).toHaveLength(1);
+                expect(requests[0]!.url).toBe("https://example.test/v1/chat/completions");
+                const body = JSON.parse(String(requests[0]!.init!.body));
+                expect(body.model).toBe("custom-model");
+                expect(body.response_format).toBeUndefined();
+                expect((requests[0]!.init!.headers as Record<string, string>).authorization).toBeUndefined();
+            },
+        ),
     );
 });
 
@@ -881,6 +979,26 @@ describe("rate card extraction", () => {
         const extraction = await extractRates(withPeak.standard, withPeak.peak, call as never);
         expect(extraction.rates).toHaveLength(withPeak.standard.rowCount);
         expect(extraction.peak_rates).toHaveLength(withPeak.peak?.rowCount ?? 0);
+    });
+
+    test("the completeness check reaches the extraction client", async () => {
+        let checked = false;
+        const call = async (
+            _schema: unknown,
+            _instructions: string,
+            _user: string,
+            check?: (value: { rates: unknown[]; peak_rates: unknown[] }) => void,
+        ) => {
+            const incomplete = { rates: [rate("glm-5.3")], peak_rates: [] };
+            expect(() => check?.(incomplete)).toThrow("standard rate extraction incomplete");
+            checked = true;
+            return {
+                rates: [1, 2, 3, 4, 5].map((n) => rate(`m-${n}`)),
+                peak_rates: [1, 2].map((n) => rate(`p-${n}`)),
+            };
+        };
+        await extractRates(withPeak.standard, withPeak.peak, call as never);
+        expect(checked).toBe(true);
     });
 });
 

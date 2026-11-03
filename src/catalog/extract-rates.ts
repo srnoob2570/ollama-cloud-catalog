@@ -1,7 +1,10 @@
 // Rate-card extraction: the LLM prompt IS the contract. The prompt text, its
 // row-count anchors and the completeness checks live here so that editing the
 // prompt is a tested edit, not a production experiment. One LLM call covers
-// both tables; peak rates ride in the same object under peak_rates.
+// both tables; peak rates ride in the same object under peak_rates. The
+// completeness check is handed to the extraction client per attempt, so a
+// model that drops a row is rejected and the next model in the chain gets a
+// turn; the post-call check keeps injected test doubles honest.
 import type { z } from "zod";
 import { extractJson } from "../extract/ai.ts";
 import { RateCardExtractionSchema } from "./schema.ts";
@@ -13,6 +16,7 @@ type RateCall = (
     schema: typeof RateCardExtractionSchema,
     instructions: string,
     user: string,
+    check?: (value: RateCardExtraction) => void,
 ) => Promise<RateCardExtraction>;
 
 const tableLabel = (label: string, table: PricingTable): string => `## ${label}\n${table.markdown}`;
@@ -40,17 +44,21 @@ export function buildRatePrompt(
 export async function extractRates(
     standard: PricingTable,
     peak: PricingTable | undefined,
-    call: RateCall = extractJson,
+    call: RateCall = (schema, instructions, user, check) =>
+        extractJson(schema, instructions, user, check ? { check } : {}),
 ): Promise<RateCardExtraction> {
     const { instructions, user } = buildRatePrompt(standard, peak);
-    const extraction = await call(RateCardExtractionSchema, instructions, user);
-    if (extraction.rates.length !== standard.rowCount)
-        throw new Error(
-            `standard rate extraction incomplete: got ${extraction.rates.length}, table has ${standard.rowCount} rows`,
-        );
-    if (extraction.peak_rates.length !== (peak?.rowCount ?? 0))
-        throw new Error(
-            `peak rate extraction incomplete: got ${extraction.peak_rates.length}, table has ${peak?.rowCount ?? 0} rows`,
-        );
+    const check = (extraction: RateCardExtraction): void => {
+        if (extraction.rates.length !== standard.rowCount)
+            throw new Error(
+                `standard rate extraction incomplete: got ${extraction.rates.length}, table has ${standard.rowCount} rows`,
+            );
+        if (extraction.peak_rates.length !== (peak?.rowCount ?? 0))
+            throw new Error(
+                `peak rate extraction incomplete: got ${extraction.peak_rates.length}, table has ${peak?.rowCount ?? 0} rows`,
+            );
+    };
+    const extraction = await call(RateCardExtractionSchema, instructions, user, check);
+    check(extraction);
     return extraction;
 }

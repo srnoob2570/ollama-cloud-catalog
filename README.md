@@ -29,12 +29,13 @@ capability changes that do not move the model-list hash. Details in
 | Job | Schedule (UTC) | What it does |
 |---|---|---|
 | `run-pipeline update` | every 10 minutes | Hash-gates on `/v1/models`; scrapes specs only on change (or weekly staleness), then chains `pricing` when it published a new catalog |
-| `run-pipeline pricing` | Mondays 06:00 | Scrapes the rate card with `glm-5.3-flash` structured outputs |
+| `run-pipeline pricing` | Mondays 06:00 | Scrapes the rate card with Gemini 3.8 Flash (Kilo free pool as fallback) |
 | `run-pipeline force` | Mondays 05:00 | `--force` spec re-extraction when Ollama quietly upgrades a model |
 | `run-pipeline check` | manual | Read-only diagnostic: is the catalog current? |
 
-The container needs `GITHUB_TOKEN` to push and `OLLAMA_API_KEY` for the
-pipelines; `check` works without the API key.
+The container needs `GITHUB_TOKEN` to push and `GEMINI_API_KEY` for pricing;
+`OLLAMA_API_KEY` is still needed by `update`/`force` for the output-limit
+probe. `check` works without either API key.
 
 Sources, in order of trust:
 
@@ -47,8 +48,16 @@ Sources, in order of trust:
    the probe costs no tokens:
    `"max_tokens (...) exceeds model's maximum output tokens (1048576) ..."`.
 4. `ollama.com/pricing`. Cheerio pre-extracts `section#model-pricing`, then
-   glm-5.3-flash extracts the rate rows with a zod-derived JSON schema.
+   Gemini 3.8 Flash extracts the rate rows through the OpenAI-compatible
+   endpoint, with Kilo's free pool as fallback. The zod-derived JSON schema
+   rides in the prompt and, when the provider accepts it, in `response_format`.
    Rows link `/library/<id>`, so ids come straight from the page.
+
+The extraction chain is one attempt per model, in order: `EXTRACT_PRIMARY_*`
+(defaults to Gemini `gemini-3.8-flash`) then `EXTRACT_FALLBACK_*` (defaults to
+Kilo `reflection/beam-free`, anonymous). A failure or an incomplete extraction
+moves to the next model; if all fail, the run aborts. See
+`docs/adr/0006-gemini-free-extraction.md`.
 
 Everything is fail-loud: a missing `/api/show` response falls back to the
 previous catalog entry, and **any pricing coverage problem** (unknown rate,
@@ -62,7 +71,7 @@ survive pricing updates.
 bun install
 bun run check            # exit 0 if the catalog is up to date
 OLLAMA_API_KEY=... bun run update            # rebuild specs (hash-gated)
-OLLAMA_API_KEY=... bun run update-pricing    # refresh cost fields
+GEMINI_API_KEY=... bun run update-pricing    # refresh cost fields
 bun test && bun run typecheck
 ```
 

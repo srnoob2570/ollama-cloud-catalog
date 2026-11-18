@@ -1,7 +1,12 @@
 {
   "$schema": "https://raw.githubusercontent.com/srnoob2570/ollama-cloud-catalog/main/schemas/pricing.schema.json",
-  "generated_at": "2026-10-30T21:20:11.300Z",
+  "generated_at": "2026-11-18T07:20:51.738Z",
   "models": {
+    "beam": {
+      "cache_read": 0.015,
+      "input": 0.125,
+      "output": 0.4
+    },
     "clef:27b": {
       "cache_read": 0,
       "input": 0.24,
@@ -52,6 +57,11 @@
       "input": 0.07,
       "output": 0.3
     },
+    "inkling-2-small": {
+      "cache_read": 0.03,
+      "input": 0.3,
+      "output": 1
+    },
     "kimi-k2.6": {
       "cache_read": 0.16,
       "input": 0.95,
@@ -67,6 +77,11 @@
       "input": 3,
       "output": 15
     },
+    "kimi-k3.1-pro": {
+      "cache_read": 0.2,
+      "input": 2,
+      "output": 10
+    },
     "mimo-v2.6-flash": {
       "cache_read": 0.0028,
       "input": 0.14,
@@ -76,11 +91,6 @@
       "cache_read": 0.0036,
       "input": 0.435,
       "output": 0.87
-    },
-    "minimax-m2.7": {
-      "cache_read": 0.06,
-      "input": 0.3,
-      "output": 1.2
     },
     "minimax-m3": {
       "cache_read": 0.12,
@@ -92,10 +102,6 @@
       "input": 0.15,
       "output": 0.6
     },
-    "mistral-large-3:675b": {
-      "input": 0.5,
-      "output": 1.5
-    },
     "mistral-large-4": {
       "cache_read": 0.07,
       "input": 0.7,
@@ -105,10 +111,6 @@
       "cache_read": 0.15,
       "input": 1.25,
       "output": 4.25
-    },
-    "nemotron-3-nano:30b": {
-      "input": 0.06,
-      "output": 0.24
     },
     "nemotron-3-super": {
       "cache_read": 0.015,

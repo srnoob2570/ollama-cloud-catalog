@@ -9,6 +9,11 @@
     "models": {
       "beam": {
         "attachment": false,
+        "cost": {
+          "cache_read": 0.015,
+          "input": 0.125,
+          "output": 0.4
+        },
         "description": "Sparse mixture-of-experts reasoning model with 23B active parameters for coding and agentic workflows",
         "id": "beam",
         "limit": {
@@ -440,6 +445,11 @@
       },
       "inkling-2-small": {
         "attachment": true,
+        "cost": {
+          "cache_read": 0.03,
+          "input": 0.3,
+          "output": 1
+        },
         "description": "Multimodal MoE reasoning model (594B total, 17B active) for agentic coding, vision, and knowledge work",
         "id": "inkling-2-small",
         "limit": {
@@ -591,6 +601,11 @@
       },
       "kimi-k3.1-pro": {
         "attachment": true,
+        "cost": {
+          "cache_read": 0.2,
+          "input": 2,
+          "output": 10
+        },
         "description": "Multimodal Kimi model with a 1M-token context window and always-on reasoning, for coding, 3D creation and financial research",
         "id": "kimi-k3.1-pro",
         "limit": {

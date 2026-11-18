@@ -88,7 +88,7 @@
         "id": "deepseek-v4-pro:0813",
         "limit": {
           "context": 1048576,
-          "output": 65536
+          "output": 393216
         },
         "modalities": {
           "input": [
@@ -438,6 +438,40 @@
           ]
         }
       },
+      "inkling-2-small": {
+        "attachment": true,
+        "description": "Multimodal MoE reasoning model (594B total, 17B active) for agentic coding, vision, and knowledge work",
+        "id": "inkling-2-small",
+        "limit": {
+          "context": 1048576,
+          "output": 131072
+        },
+        "modalities": {
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "Inkling 2 Small",
+        "reasoning": true,
+        "release_date": "2026-11-12",
+        "temperature": true,
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "inkling2",
+          "parameter_count": 594000000000,
+          "quantization": "NVFP4",
+          "reasoning_options": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
+        }
+      },
       "kimi-k2.6": {
         "attachment": true,
         "cost": {
@@ -555,6 +589,40 @@
           ]
         }
       },
+      "kimi-k3.1-pro": {
+        "attachment": true,
+        "description": "Multimodal Kimi model with a 1M-token context window and always-on reasoning, for coding, 3D creation and financial research",
+        "id": "kimi-k3.1-pro",
+        "limit": {
+          "context": 1048576,
+          "output": 1048576
+        },
+        "modalities": {
+          "input": [
+            "text",
+            "image"
+          ],
+          "output": [
+            "text"
+          ]
+        },
+        "name": "Kimi K3.1 Pro",
+        "reasoning": true,
+        "release_date": "2026-11-04",
+        "temperature": false,
+        "tool_call": true,
+        "x_ollama": {
+          "ollama_family": "kimi-k3",
+          "parameter_count": 2812000000000,
+          "quantization": "MXFP4",
+          "reasoning_options": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
+        }
+      },
       "mimo-v2.6-flash": {
         "attachment": true,
         "cost": {
@@ -584,7 +652,7 @@
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "mimo_v2",
-          "parameter_count": 161448877510,
+          "parameter_count": 309000000000,
           "quantization": "FP8",
           "reasoning_options": [
             "low",
@@ -623,46 +691,8 @@
         "tool_call": true,
         "x_ollama": {
           "ollama_family": "mimo_v2",
-          "parameter_count": 527511760006,
+          "parameter_count": 1020000000000,
           "quantization": "FP8",
-          "reasoning_options": [
-            "low",
-            "medium",
-            "high",
-            "max"
-          ]
-        }
-      },
-      "minimax-m2.7": {
-        "attachment": false,
-        "cost": {
-          "cache_read": 0.06,
-          "input": 0.3,
-          "output": 1.2
-        },
-        "description": "MiniMax model for chat, coding, office work, and agentic tasks",
-        "id": "minimax-m2.7",
-        "limit": {
-          "context": 196608,
-          "output": 131072
-        },
-        "modalities": {
-          "input": [
-            "text"
-          ],
-          "output": [
-            "text"
-          ]
-        },
-        "name": "Minimax M2.7",
-        "reasoning": true,
-        "release_date": "2026-03-18",
-        "temperature": true,
-        "tool_call": true,
-        "x_ollama": {
-          "ollama_family": "minimax-m2",
-          "parameter_count": 229000000000,
-          "quantization": "unknown",
           "reasoning_options": [
             "low",
             "medium",
@@ -748,44 +778,6 @@
           ]
         }
       },
-      "mistral-large-3:675b": {
-        "attachment": true,
-        "cost": {
-          "input": 0.5,
-          "output": 1.5
-        },
-        "description": "Flagship Mistral model for advanced reasoning, coding, and multilingual work",
-        "id": "mistral-large-3:675b",
-        "limit": {
-          "context": 262144,
-          "output": 262144
-        },
-        "modalities": {
-          "input": [
-            "text",
-            "image"
-          ],
-          "output": [
-            "text"
-          ]
-        },
-        "name": "Mistral Large 3 675B",
-        "reasoning": false,
-        "release_date": "2025-12-02",
-        "temperature": true,
-        "tool_call": true,
-        "x_ollama": {
-          "ollama_family": "mistral3",
-          "parameter_count": 675000000000,
-          "quantization": "FP8",
-          "reasoning_options": [
-            "low",
-            "medium",
-            "high",
-            "max"
-          ]
-        }
-      },
       "mistral-large-4": {
         "attachment": true,
         "cost": {
@@ -855,43 +847,6 @@
         "x_ollama": {
           "ollama_family": "muse-spark",
           "parameter_count": 822000000000,
-          "quantization": "FP8",
-          "reasoning_options": [
-            "low",
-            "medium",
-            "high",
-            "max"
-          ]
-        }
-      },
-      "nemotron-3-nano:30b": {
-        "attachment": false,
-        "cost": {
-          "input": 0.06,
-          "output": 0.24
-        },
-        "description": "Small Nemotron 3 MoE for efficient coding, math, and long-context agents",
-        "id": "nemotron-3-nano:30b",
-        "limit": {
-          "context": 262144,
-          "output": 131072
-        },
-        "modalities": {
-          "input": [
-            "text"
-          ],
-          "output": [
-            "text"
-          ]
-        },
-        "name": "Nemotron 3 Nano 30B",
-        "reasoning": true,
-        "release_date": "2025-12-15",
-        "temperature": true,
-        "tool_call": true,
-        "x_ollama": {
-          "ollama_family": "nemotron-3-nano",
-          "parameter_count": 32000000000,
           "quantization": "FP8",
           "reasoning_options": [
             "low",
@@ -982,8 +937,8 @@
     "npm": "@ai-sdk/openai-compatible"
   },
   "x_ollama": {
-    "generated_at": "2026-11-03T07:26:30.217Z",
-    "models_hash": "0a67a122241e1a39cd945fcc28a00a61130bc514149d571d2f6b66639eb61c86",
+    "generated_at": "2026-11-18T07:20:44.126Z",
+    "models_hash": "8efaaea3e43d24885d08852edeb1d7335c6fffde4c24b90b314b267a11d74a10",
     "sources": {
       "models": "https://ollama.com/v1/models",
       "show": "https://ollama.com/api/show"
